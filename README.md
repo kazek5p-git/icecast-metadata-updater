@@ -283,9 +283,11 @@ python3 weather_metadata_updater.py \
 - `--title-mode classic|outside|weather` - szybki wybór gotowego formatu tytułu
 - `--title-template "(outside from {city_ascii}, quality 320kbps mp3 temperatura: {temp}°C, ...)"` - format tytułu
   Dostępne pola: `{city}`, `{city_ascii}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
-  `{air}`, `{air_clause}`, `{aqi}`, `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
+  `{pressure}`, `{pressure_clause}`, `{pressure_hpa}`, `{air}`, `{air_clause}`, `{aqi}`,
+  `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
   `{city_ascii}` to nazwa miasta bez polskich znaków (np. `Łódź` -> `Lodz`).
   `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
+  `{pressure}` jest puste, gdy brak danych ciśnienia, a `{pressure_clause}` to gotowy fragment z przecinkiem.
   `{air}` jest puste, gdy brak danych AQI, a `{air_clause}` to gotowy fragment z przecinkiem.
   Jeśli ustawisz własne `title_template`, to ma ono wyższy priorytet niż `title_mode`.
   Dla starszych konfiguracji ze starym domyślnym układem `classic` program pyta

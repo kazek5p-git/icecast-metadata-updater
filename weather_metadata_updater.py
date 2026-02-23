@@ -100,15 +100,15 @@ TITLE_TEMPLATE_PRESETS = {
     "outside": (
         "(outside from {city_ascii}, quality 320kbps mp3 "
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause}{air_clause})"
+        "{condition}{precip_clause}{pressure_clause}{air_clause})"
     ),
     "weather": (
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause}{air_clause}"
+        "{condition}{precip_clause}{pressure_clause}{air_clause}"
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h, {condition}{precip_clause}{air_clause}"
+        "wiatr {wind} km/h, {condition}{precip_clause}{pressure_clause}{air_clause}"
     ),
 }
 
@@ -624,6 +624,21 @@ def air_quality_text(air_quality: dict[str, Any] | None) -> tuple[str, str]:
     return f"powietrze: {label} (AQI {aqi_value})", str(aqi_value)
 
 
+def pressure_text(weather: dict[str, Any]) -> tuple[str, str]:
+    raw_pressure = weather.get("pressure_msl")
+    if raw_pressure is None:
+        raw_pressure = weather.get("surface_pressure")
+    if raw_pressure is None:
+        return "", ""
+
+    try:
+        pressure_hpa = int(round(float(raw_pressure)))
+    except (TypeError, ValueError):
+        return "", ""
+
+    return f"ciśnienie {pressure_hpa} hPa", str(pressure_hpa)
+
+
 def rain_intensity_label(rain_mm: float) -> str:
     if rain_mm < 0.05:
         return "śladowy deszcz"
@@ -721,6 +736,7 @@ def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
             "longitude": point.longitude,
             "current": (
                 "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day,"
+                "pressure_msl,surface_pressure,"
                 "precipitation,rain,showers,snowfall"
             ),
             "wind_speed_unit": "kmh",
@@ -767,6 +783,8 @@ def build_title(
 
     precip = precipitation_text(weather)
     precip_clause = f", {precip}" if precip else ""
+    pressure, pressure_hpa = pressure_text(weather)
+    pressure_clause = f", {pressure}" if pressure else ""
     air, aqi = air_quality_text(air_quality)
     air_clause = f", {air}" if air else ""
     city_latin = city.translate(str.maketrans({"Ł": "L", "ł": "l"}))
@@ -783,6 +801,9 @@ def build_title(
         condition=condition,
         precip=precip,
         precip_clause=precip_clause,
+        pressure=pressure,
+        pressure_clause=pressure_clause,
+        pressure_hpa=pressure_hpa,
         air=air,
         air_clause=air_clause,
         aqi=aqi,
