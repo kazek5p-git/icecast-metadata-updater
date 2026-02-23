@@ -81,6 +81,7 @@ Skrypt utworzy pliki w `dist/`:
 
 - `icecast-metadata-updater-<wersja>.tar.gz`
 - `icecast-metadata-updater-<wersja>.tar.gz.sha256`
+- `CHANGELOG.md` (opis zmian z historii commitow)
 - `latest.json` (manifest dla auto-update)
 
 Przy publikacji do WWW dodatkowo tworzy:
@@ -116,6 +117,7 @@ Po stronie autora (u Ciebie):
 
 - `https://kazpar.pl/icecast-updater/`
 - `https://kazpar.pl/icecast-updater/latest.json`
+- `https://kazpar.pl/icecast-updater/CHANGELOG.md`
 
 Po stronie znajomego (jednorazowo):
 
@@ -151,6 +153,7 @@ cd ~/icecast-metadata-updater
 Efekt:
 
 - `latest.json` wskazuje najnowszą paczkę
+- `CHANGELOG.md` pokazuje ostatnie zmiany (historia commitow)
 - znajomy aktualizuje się automatycznie przez swój timer `systemd --user`
 - Ty utrzymujesz aktualizacje przez zwykłe pliki statyczne na WWW (bez ingerencji w Icecast)
 

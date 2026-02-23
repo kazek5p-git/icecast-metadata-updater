@@ -48,18 +48,49 @@ write_manifest() {
   local sha256="$4"
   local generated_at="$5"
   local site_url="$6"
+  local changelog_name="$7"
 
   {
     echo "{"
     echo "  \"version\": \"$version\","
     echo "  \"tarball\": \"$archive_name\","
+    echo "  \"changelog\": \"$changelog_name\","
     if [[ -n "$site_url" ]]; then
       echo "  \"tarball_url\": \"$site_url/$archive_name\","
       echo "  \"sha256_url\": \"$site_url/$archive_name.sha256\","
+      echo "  \"changelog_url\": \"$site_url/$changelog_name\","
     fi
     echo "  \"sha256\": \"$sha256\","
     echo "  \"generated_at_utc\": \"$generated_at\""
     echo "}"
+  } > "$path"
+}
+
+write_changelog() {
+  local path="$1"
+  local version="$2"
+  local generated_at="$3"
+  local max_entries=20
+
+  {
+    echo "# Changelog"
+    echo
+    echo "Automatycznie wygenerowana lista zmian dla publikacji updatera."
+    echo
+    echo "## Wersja $version ($generated_at UTC)"
+    echo
+
+    if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      while IFS=$'\x1f' read -r short_hash commit_date subject; do
+        [[ -z "$short_hash" ]] && continue
+        echo "- $commit_date $short_hash - $subject"
+      done < <(git -C "$SCRIPT_DIR" log --max-count "$max_entries" --date=short --pretty=format:'%h%x1f%ad%x1f%s')
+    else
+      echo "- Brak historii Git, lista zmian niedostepna."
+    fi
+
+    echo
+    echo "_Plik wygenerowany przez make_installer_bundle.sh_"
   } > "$path"
 }
 
@@ -69,6 +100,7 @@ write_index() {
   local generated_at="$3"
   local archive_name="$4"
   local site_url="$5"
+  local changelog_name="$6"
   local manifest_url_hint
 
   if [[ -n "$site_url" ]]; then
@@ -164,8 +196,10 @@ write_index() {
         <a class="btn" href="$archive_name">Pobierz paczke</a>
         <a class="btn alt" href="$archive_name.sha256">Suma SHA256</a>
         <a class="btn alt" href="latest.json">Manifest latest.json</a>
+        <a class="btn alt" href="$changelog_name">Changelog</a>
       </div>
     </section>
+    <p>Opis zmian znajduje sie w pliku <code>$changelog_name</code>.</p>
     <p>Przyklad wlaczenia automatycznej aktualizacji u znajomego:</p>
     <pre><code>cd ~/icecast-metadata-updater
 ./enable_auto_update.sh --manifest-url "$manifest_url_hint" --run-now</code></pre>
@@ -225,9 +259,13 @@ fi
 PKG_NAME="icecast-metadata-updater-$VERSION"
 STAGE_DIR="$(mktemp -d)"
 PKG_DIR="$STAGE_DIR/$PKG_NAME"
+GENERATED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+CHANGELOG_NAME="CHANGELOG.md"
+CHANGELOG_PATH="$OUT_DIR/$CHANGELOG_NAME"
 
 mkdir -p "$PKG_DIR/systemd"
 mkdir -p "$OUT_DIR"
+write_changelog "$CHANGELOG_PATH" "$VERSION" "$GENERATED_AT_UTC"
 
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/start_updater.sh" "$PKG_DIR/"
@@ -238,6 +276,7 @@ cp "$SCRIPT_DIR/update.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/auto_update.example.conf" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config.example.json" "$PKG_DIR/"
 cp "$SCRIPT_DIR/README.md" "$PKG_DIR/"
+cp "$CHANGELOG_PATH" "$PKG_DIR/$CHANGELOG_NAME"
 cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
 
 chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/auto_update.sh" \
@@ -252,11 +291,10 @@ ARCHIVE_PATH="$OUT_DIR/$PKG_NAME.tar.gz"
 CHECKSUM_PATH="$ARCHIVE_PATH.sha256"
 sha256sum "$ARCHIVE_PATH" > "$CHECKSUM_PATH"
 SHA_VALUE="$(awk '{print $1}' "$CHECKSUM_PATH")"
-GENERATED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 LATEST_JSON_PATH="$OUT_DIR/latest.json"
 ARCHIVE_NAME="$(basename "$ARCHIVE_PATH")"
-write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL"
+write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME"
 
 if [[ -n "$PUBLISH_DIR" ]]; then
   mkdir -p "$PUBLISH_DIR"
@@ -269,20 +307,23 @@ if [[ -n "$PUBLISH_DIR" ]]; then
 
   cp -f "$ARCHIVE_PATH" "$PUBLISH_DIR/"
   cp -f "$CHECKSUM_PATH" "$PUBLISH_DIR/"
+  cp -f "$CHANGELOG_PATH" "$PUBLISH_DIR/$CHANGELOG_NAME"
   cp -f "$LATEST_JSON_PATH" "$PUBLISH_DIR/latest.json"
-  write_index "$PUBLISH_DIR/index.html" "$VERSION" "$GENERATED_AT_UTC" "$ARCHIVE_NAME" "$SITE_URL"
+  write_index "$PUBLISH_DIR/index.html" "$VERSION" "$GENERATED_AT_UTC" "$ARCHIVE_NAME" "$SITE_URL" "$CHANGELOG_NAME"
 fi
 
 rm -rf "$STAGE_DIR"
 
 echo "Paczka gotowa: $ARCHIVE_PATH"
 echo "Suma SHA256: $CHECKSUM_PATH"
+echo "Changelog: $CHANGELOG_PATH"
 echo "Manifest: $LATEST_JSON_PATH"
 if [[ -n "$PUBLISH_DIR" ]]; then
   echo "Publikacja WWW: $PUBLISH_DIR"
   if [[ -n "$SITE_URL" ]]; then
     echo "URL manifestu: $SITE_URL/latest.json"
     echo "URL strony: $SITE_URL/"
+    echo "URL changelogu: $SITE_URL/$CHANGELOG_NAME"
   fi
 fi
 echo "Instalacja u znajomego:"
