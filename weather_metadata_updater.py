@@ -817,6 +817,7 @@ def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
             "longitude": point.longitude,
             "current": (
                 "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,cloud_cover,"
+                "wind_speed_10m,"
                 "wind_gusts_10m,wind_direction_10m,"
                 "pressure_msl,surface_pressure,"
                 "precipitation,rain,showers,snowfall"
