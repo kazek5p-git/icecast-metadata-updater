@@ -197,6 +197,27 @@ def darkice_defaults() -> dict[str, str]:
     return {}
 
 
+def confirm_legacy_title_migration() -> bool:
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return False
+
+    print(
+        "Wykryto stary domyslny format tytulow (classic).",
+        flush=True,
+    )
+    print(
+        "Czy chcesz przelaczyc na nowy format 'outside from ...'?",
+        flush=True,
+    )
+    while True:
+        answer = input("Zmiana formatu [t/N]: ").strip().lower()
+        if answer in {"t", "tak", "y", "yes"}:
+            return True
+        if answer in {"", "n", "nie", "no"}:
+            return False
+        print("Wpisz t lub n.", flush=True)
+
+
 def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> RuntimeConfig:
     defaults = darkice_defaults()
 
@@ -304,13 +325,20 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
     elif isinstance(title_template_cfg, str) and title_template_cfg.strip():
         title_template = title_template_cfg.strip()
         if title_template == LEGACY_CLASSIC_TEMPLATE:
-            title_template = TITLE_TEMPLATE_PRESETS["outside"]
-            effective_title_mode = "outside"
-            log(
-                "Wykryto stary domyslny title_template (classic). "
-                "Automatycznie przechodze na title_mode=outside. "
-                "Aby wrocic, ustaw title_mode=classic."
-            )
+            if confirm_legacy_title_migration():
+                title_template = TITLE_TEMPLATE_PRESETS["outside"]
+                effective_title_mode = "outside"
+                log(
+                    "Potwierdzono migracje title_template: classic -> outside. "
+                    "Aby ustawic to na stale, wpisz w configu title_mode=outside."
+                )
+            else:
+                effective_title_mode = "classic"
+                log(
+                    "Wykryto stary domyslny title_template (classic). "
+                    "Pozostawiam classic. Aby zmienic, ustaw title_mode=outside "
+                    "lub uruchom config_wizard.py."
+                )
         else:
             for preset_name, preset_template in TITLE_TEMPLATE_PRESETS.items():
                 if title_template == preset_template:
