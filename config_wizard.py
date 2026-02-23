@@ -378,9 +378,9 @@ def main() -> int:
     title_mode = prompt_choice(
         "Tryb tytułu metadanych:",
         [
-            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, porywy 24 km/h, kierunek SW, ciśnienie 1014 hPa, jakość powietrza: dobra (AQI 28)"),
-            ("outside", "outside from Lodz, quality 320kbps mp3 temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, porywy 24 km/h, kierunek SW, ..."),
-            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, porywy 24 km/h, kierunek SW, ..."),
+            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, ciśnienie 1014 hPa, jakość powietrza: dobra (AQI 28)"),
+            ("outside", "outside from Lodz, quality 320kbps mp3 temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, ..."),
+            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, ..."),
         ],
         default_mode,
     )

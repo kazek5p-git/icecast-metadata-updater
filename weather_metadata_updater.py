@@ -660,7 +660,7 @@ def wind_details_text(weather: dict[str, Any]) -> tuple[str, str, str, str, str]
             gust_value = None
         if gust_value is not None and gust_value > 0:
             gust_kmh = str(gust_value)
-            gust_text = f"porywy {gust_value} km/h"
+            gust_text = f"w porywach do {gust_value} km/h"
 
     raw_direction = weather.get("wind_direction_10m")
     if raw_direction is not None:
