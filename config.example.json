@@ -21,5 +21,5 @@
     "interval_seconds": 120,
     "dry_run": false
   },
-  "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}"
+  "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}, {precip}"
 }

@@ -94,7 +94,7 @@ DEFAULT_CONFIG = {
         "interval_seconds": 120,
         "dry_run": False,
     },
-    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}",
+    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}, {precip}",
 }
 
 
@@ -483,12 +483,55 @@ def weather_description(code: int, is_day: int | None = None) -> str:
     return WMO_WEATHER.get(code, f"kod pogody {code}")
 
 
+def rain_intensity_label(rain_mm: float) -> str:
+    if rain_mm < 0.1:
+        return "bez deszczu"
+    if rain_mm < 0.5:
+        return "bardzo lekki deszcz"
+    if rain_mm < 1.5:
+        return "lekki deszcz"
+    if rain_mm < 4.0:
+        return "umiarkowany deszcz"
+    if rain_mm < 8.0:
+        return "silny deszcz"
+    return "ulewa"
+
+
+def snowfall_intensity_label(snow_cm: float) -> str:
+    if snow_cm < 0.1:
+        return "bez opadów śniegu"
+    if snow_cm < 0.5:
+        return "lekki śnieg"
+    if snow_cm < 2.0:
+        return "opady śniegu"
+    return "silny śnieg"
+
+
+def precipitation_text(weather: dict[str, Any]) -> str:
+    precipitation = float(weather.get("precipitation", 0.0) or 0.0)
+    rain = float(weather.get("rain", 0.0) or 0.0)
+    showers = float(weather.get("showers", 0.0) or 0.0)
+    snowfall = float(weather.get("snowfall", 0.0) or 0.0)
+
+    if precipitation < 0.1 and rain < 0.1 and showers < 0.1 and snowfall < 0.1:
+        return "opad: brak"
+
+    if snowfall >= max(rain + showers, 0.1):
+        return f"opad: {snowfall_intensity_label(snowfall)} ({snowfall:.1f} cm)"
+
+    rain_total = rain + showers
+    return f"opad: {rain_intensity_label(rain_total)} ({rain_total:.1f} mm)"
+
+
 def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
     params = urlencode(
         {
             "latitude": point.latitude,
             "longitude": point.longitude,
-            "current": "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day",
+            "current": (
+                "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day,"
+                "precipitation,rain,showers,snowfall"
+            ),
             "wind_speed_unit": "kmh",
             "timezone": cfg.timezone,
         }
@@ -514,6 +557,11 @@ def build_title(template: str, city: str, weather: dict[str, Any], mount_name: s
         feels=feels,
         wind=wind,
         condition=condition,
+        precip=precipitation_text(weather),
+        precipitation_mm=round(float(weather.get("precipitation", 0.0)), 2),
+        rain_mm=round(float(weather.get("rain", 0.0)), 2),
+        showers_mm=round(float(weather.get("showers", 0.0)), 2),
+        snowfall_cm=round(float(weather.get("snowfall", 0.0)), 2),
         mount=mount_name,
         weather_code=code,
     )
