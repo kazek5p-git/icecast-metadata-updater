@@ -132,6 +132,10 @@ copy_file "$SCRIPT_DIR/install.sh" "$INSTALL_DIR/install.sh"
 copy_file "$SCRIPT_DIR/README.md" "$INSTALL_DIR/README.md"
 copy_file "$SCRIPT_DIR/config.example.json" "$INSTALL_DIR/config.example.json"
 copy_file "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$INSTALL_DIR/systemd/icecast-metadata-updater.service"
+if [[ -f "$SCRIPT_DIR/install_online.sh" ]]; then
+  copy_file "$SCRIPT_DIR/install_online.sh" "$INSTALL_DIR/install_online.sh"
+  chmod +x "$INSTALL_DIR/install_online.sh"
+fi
 if [[ -f "$SCRIPT_DIR/make_installer_bundle.sh" ]]; then
   copy_file "$SCRIPT_DIR/make_installer_bundle.sh" "$INSTALL_DIR/make_installer_bundle.sh"
   chmod +x "$INSTALL_DIR/make_installer_bundle.sh"
@@ -196,6 +200,7 @@ echo "Status: $(systemctl --user is-active "$SERVICE_NAME")"
 echo "Autostart: $(systemctl --user is-enabled "$SERVICE_NAME")"
 echo "Log: $INSTALL_DIR/logs/updater.log"
 echo "Kreator konfiguracji: python3 $INSTALL_DIR/config_wizard.py --config $INSTALL_DIR/config.json"
+echo "Instalator online: $INSTALL_DIR/install_online.sh"
 
 if [[ "$LINGER_STATE" != "yes" ]]; then
   echo

@@ -21,6 +21,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 
 - `weather_metadata_updater.py` - główny skrypt
 - `config_wizard.py` - interaktywny kreator konfiguracji `config.json`
+- `install_online.sh` - instalator online (pobranie + weryfikacja + instalacja z `latest.json`)
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
 - `update.sh` - aktualizacja programu i restart usługi
@@ -79,6 +80,22 @@ cd ~/icecast-metadata-updater
 python3 config_wizard.py --config config.json
 ```
 
+## Instalacja 1 komendą (online)
+
+Instalacja bez ręcznego pobierania paczki:
+
+```bash
+curl -fsSL https://kazpar.pl/icecast-updater/install_online.sh | bash
+```
+
+Instalator online:
+
+- pobiera `latest.json`,
+- pobiera najnowszą paczkę,
+- weryfikuje sumę SHA256,
+- uruchamia `install.sh`,
+- opcjonalnie uruchamia kreator i auto-update.
+
 ## Paczka dla znajomego
 
 Tworzenie paczki z najnowszą wersją:
@@ -102,6 +119,7 @@ Skrypt utworzy pliki w `dist/`:
 - `icecast-metadata-updater-<wersja>.tar.gz.sha256`
 - `CHANGELOG.md` (opis zmian z historii commitow)
 - `latest.json` (manifest dla auto-update)
+- `install_online.sh` (instalator online)
 
 Przy publikacji do WWW dodatkowo tworzy:
 
@@ -137,6 +155,7 @@ Po stronie autora (u Ciebie):
 
 - `https://kazpar.pl/icecast-updater/`
 - `https://kazpar.pl/icecast-updater/latest.json`
+- `https://kazpar.pl/icecast-updater/install_online.sh`
 - `https://kazpar.pl/icecast-updater/CHANGELOG.md`
 
 Po stronie znajomego (jednorazowo):
