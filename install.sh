@@ -85,6 +85,7 @@ fi
 for needed in \
   "$SCRIPT_DIR/weather_metadata_updater.py" \
   "$SCRIPT_DIR/start_updater.sh" \
+  "$SCRIPT_DIR/update.sh" \
   "$SCRIPT_DIR/config.example.json" \
   "$SCRIPT_DIR/systemd/icecast-metadata-updater.service"; do
   if [[ ! -f "$needed" ]]; then
@@ -97,6 +98,7 @@ mkdir -p "$INSTALL_DIR" "$INSTALL_DIR/systemd" "$INSTALL_DIR/logs" "$USER_SYSTEM
 
 copy_file "$SCRIPT_DIR/weather_metadata_updater.py" "$INSTALL_DIR/weather_metadata_updater.py"
 copy_file "$SCRIPT_DIR/start_updater.sh" "$INSTALL_DIR/start_updater.sh"
+copy_file "$SCRIPT_DIR/update.sh" "$INSTALL_DIR/update.sh"
 copy_file "$SCRIPT_DIR/install.sh" "$INSTALL_DIR/install.sh"
 copy_file "$SCRIPT_DIR/README.md" "$INSTALL_DIR/README.md"
 copy_file "$SCRIPT_DIR/config.example.json" "$INSTALL_DIR/config.example.json"
@@ -106,7 +108,7 @@ if [[ -f "$SCRIPT_DIR/make_installer_bundle.sh" ]]; then
   chmod +x "$INSTALL_DIR/make_installer_bundle.sh"
 fi
 
-chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/install.sh"
+chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh"
 
 if [[ ! -f "$INSTALL_DIR/config.json" ]]; then
   if [[ "$USE_SOURCE_CONFIG" -eq 1 && -f "$SCRIPT_DIR/config.json" ]]; then
@@ -139,7 +141,12 @@ WantedBy=default.target
 UNIT
 
 systemctl --user daemon-reload
-systemctl --user enable --now "$SERVICE_NAME"
+systemctl --user enable "$SERVICE_NAME"
+if systemctl --user is-active --quiet "$SERVICE_NAME"; then
+  systemctl --user restart "$SERVICE_NAME"
+else
+  systemctl --user start "$SERVICE_NAME"
+fi
 
 LINGER_STATE="unknown"
 if command -v loginctl >/dev/null 2>&1; then

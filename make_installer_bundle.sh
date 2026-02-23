@@ -30,11 +30,12 @@ mkdir -p "$OUT_DIR"
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/start_updater.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/install.sh" "$PKG_DIR/"
+cp "$SCRIPT_DIR/update.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config.example.json" "$PKG_DIR/"
 cp "$SCRIPT_DIR/README.md" "$PKG_DIR/"
 cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
 
-chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/install.sh"
+chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
 
 ARCHIVE_PATH="$OUT_DIR/$PKG_NAME.tar.gz"
 (
