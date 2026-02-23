@@ -1,23 +1,24 @@
 # Icecast Metadata Updater
 
-Narzędzie aktualizuje tytuly metadanych (`song`) w aktywnych mountach Icecast o prefiksie `outside_`.
-Dla kazdego mounta pobiera pogode dla miasta wywnioskowanego z nazwy mounta, np.:
+Narzędzie aktualizuje tytuły metadanych (`song`) w aktywnych mountach Icecast o prefiksie `outside_`.
+Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, np.:
 
-- `outside_krakow` -> `Krakow`
-- `outside_lodz` -> `Lodz`
-- `outside_zabki` -> `Zabki` (mozna nadpisac przez `city_overrides`)
+- `outside_krakow` -> `Kraków`
+- `outside_lodz` -> `Łódź`
+- `outside_zabki` -> `Ząbki` (można nadpisać przez `city_overrides`)
 
-## Jak to dziala
+## Jak to działa
 
-1. Pobiera aktywne zrodla z `status-json.xsl`.
-2. Filtruje mounty zaczynajace sie od `outside_`.
-3. Pobiera geolokalizacje miasta i aktualna pogode z Open-Meteo.
-4. Wysyla update przez Icecast: `/admin/metadata?mode=updinfo`.
+1. Pobiera aktywne źródła z `status-json.xsl`.
+2. Filtruje mounty zaczynające się od `outside_`.
+3. Pobiera geolokalizację miasta i aktualną pogodę z Open-Meteo.
+4. Wysyła update przez Icecast: `/admin/metadata?mode=updinfo`.
 
 ## Pliki
 
-- `weather_metadata_updater.py` - glowny skrypt
-- `config.example.json` - przykladowa konfiguracja
+- `weather_metadata_updater.py` - główny skrypt
+- `start_updater.sh` - start produkcyjny (UTF-8, lock, log)
+- `config.example.json` - przykładowa konfiguracja
 
 ## Uruchomienie
 
@@ -27,20 +28,30 @@ Tryb jednorazowy:
 python3 weather_metadata_updater.py --once
 ```
 
-Tryb ciagly (domyslnie co 120 s):
+Tryb ciągły (domyślnie co 120 s):
 
 ```bash
 python3 weather_metadata_updater.py
 ```
 
+Autostart po restarcie systemu (użytkownik `kazek`) jest realizowany przez `crontab`:
+
+```bash
+@reboot /bin/bash -lc "/home/kazek/icecast-metadata-updater/start_updater.sh"
+```
+
+Log działania:
+
+- `logs/updater.log`
+
 ## Konfiguracja
 
-Domyslnie skrypt probuje wykryc `base_url` i `source_password` z:
+Domyślnie skrypt próbuje wykryć `base_url` i `source_password` z:
 
 - `/etc/darkice.cfg`
 - `/etc/darkice2.cfg`
 
-Mozesz podac wszystko recznie przez `config.json` (na bazie `config.example.json`) albo argumenty CLI:
+Możesz podać wszystko ręcznie przez `config.json` (na bazie `config.example.json`) albo argumenty CLI:
 
 ```bash
 python3 weather_metadata_updater.py \
@@ -52,16 +63,22 @@ python3 weather_metadata_updater.py \
   --interval-seconds 120
 ```
 
-## Najwazniejsze opcje
+## Najważniejsze opcje
 
 - `--once` - uruchamia tylko jeden cykl
-- `--dry-run` - nie wysyla update, tylko loguje
-- `--mount-prefix outside_` - prefiks mountow
-- `--interval-seconds 120` - interwal odswiezania
-- `--title-template "{city}: {temp}C, ..."` - format tytulu
+- `--dry-run` - nie wysyła update, tylko loguje
+- `--mount-prefix outside_` - prefiks mountów
+- `--interval-seconds 120` - interwał odświeżania
+- `--title-template "{city}: {temp}°C, ..."` - format tytułu
 
-## Uwaga dot. uprawnien
+## Uwaga dot. uprawnień
 
-Jesli zobaczysz komunikat `Mountpoint will not accept URL updates`, to dany mount
-nie przyjmuje aktualizacji przez aktualne konto. W praktyce zwykle trzeba uzyc
+Jeśli zobaczysz komunikat `Mountpoint will not accept URL updates`, to dany mount
+nie przyjmuje aktualizacji przez aktualne konto. W praktyce zwykle trzeba użyć
 konta admin (`metadata_user` / `metadata_password`) zamiast samego `source`.
+
+## Uwaga dot. polskich znaków
+
+Skrypt wysyła metadata w UTF-8. Klienci audio (np. `ffprobe`, wiele playerów) pokazują
+polskie znaki poprawnie. Na starszym Icecaście `status-json.xsl` może czasem pokazywać
+zniekształcone znaki, ale nie musi to oznaczać błędu po stronie słuchacza.

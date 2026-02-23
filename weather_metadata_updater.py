@@ -20,30 +20,30 @@ from urllib.request import Request, urlopen
 
 WMO_WEATHER = {
     0: "bezchmurnie",
-    1: "glownie pogodnie",
-    2: "czesciowe zachmurzenie",
+    1: "głównie pogodnie",
+    2: "częściowe zachmurzenie",
     3: "zachmurzenie",
-    45: "mgla",
-    48: "szadz",
-    51: "lekka mzawka",
-    53: "mzawka",
-    55: "silna mzawka",
-    56: "marznaca mzawka",
-    57: "silna marznaca mzawka",
-    61: "slaby deszcz",
+    45: "mgła",
+    48: "szadź",
+    51: "lekka mżawka",
+    53: "mżawka",
+    55: "silna mżawka",
+    56: "marznąca mżawka",
+    57: "silna marznąca mżawka",
+    61: "słaby deszcz",
     63: "deszcz",
     65: "silny deszcz",
-    66: "marznacy deszcz",
-    67: "silny marznacy deszcz",
-    71: "slabe opady sniegu",
-    73: "opady sniegu",
-    75: "silne opady sniegu",
-    77: "ziarna sniezne",
-    80: "przelotny slaby deszcz",
+    66: "marznący deszcz",
+    67: "silny marznący deszcz",
+    71: "słabe opady śniegu",
+    73: "opady śniegu",
+    75: "silne opady śniegu",
+    77: "ziarna śnieżne",
+    80: "przelotny słaby deszcz",
     81: "przelotny deszcz",
     82: "silne przelotne opady",
-    85: "przelotny snieg",
-    86: "silny przelotny snieg",
+    85: "przelotny śnieg",
+    86: "silny przelotny śnieg",
     95: "burza",
     96: "burza z gradem",
     99: "silna burza z gradem",
@@ -93,7 +93,7 @@ DEFAULT_CONFIG = {
         "interval_seconds": 120,
         "dry_run": False,
     },
-    "title_template": "{city}: {temp}C, odczuwalna {feels}C, wiatr {wind} km/h, {condition}",
+    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}",
 }
 
 
@@ -478,7 +478,7 @@ def geocode_city(city: str, cfg: RuntimeConfig, cache: dict[str, GeoPoint]) -> G
 
 def weather_description(code: int, is_day: int | None = None) -> str:
     if code == 0 and is_day is not None:
-        return "slonecznie" if int(is_day) == 1 else "bezchmurnie (noc)"
+        return "słonecznie" if int(is_day) == 1 else "bezchmurnie (noc)"
     return WMO_WEATHER.get(code, f"kod pogody {code}")
 
 
@@ -524,7 +524,8 @@ def update_mount_metadata(cfg: RuntimeConfig, mount_name: str, title: str) -> tu
             "mode": "updinfo",
             "mount": f"/{mount_name}",
             "song": title,
-        }
+        },
+        encoding="utf-8",
     )
     url = f"{cfg.base_url}/admin/metadata?{params}"
     body = http_get_text(url, auth=(cfg.metadata_user, cfg.metadata_password))
