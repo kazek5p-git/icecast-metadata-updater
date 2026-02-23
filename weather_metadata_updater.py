@@ -100,15 +100,15 @@ TITLE_TEMPLATE_PRESETS = {
     "outside": (
         "(outside from {city_ascii}, quality 320kbps mp3 "
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h{wind_details_clause}, "
-        "{condition}{precip_clause}{pressure_clause}{air_clause})"
+        "{condition}{precip_clause}{pressure_clause}{humidity_clause}{air_clause})"
     ),
     "weather": (
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h{wind_details_clause}, "
-        "{condition}{precip_clause}{pressure_clause}{air_clause}"
+        "{condition}{precip_clause}{pressure_clause}{humidity_clause}{air_clause}"
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h{wind_details_clause}, {condition}{precip_clause}{pressure_clause}{air_clause}"
+        "wiatr {wind} km/h{wind_details_clause}, {condition}{precip_clause}{pressure_clause}{humidity_clause}{air_clause}"
     ),
 }
 
@@ -593,6 +593,25 @@ def weather_description(code: int, is_day: int | None = None) -> str:
     return WMO_WEATHER.get(code, f"kod pogody {code}")
 
 
+def condition_text(weather: dict[str, Any]) -> tuple[str, str]:
+    code = int(weather.get("weather_code", -1))
+    condition = weather_description(code, weather.get("is_day"))
+    raw_cloud_cover = weather.get("cloud_cover")
+    if raw_cloud_cover is None:
+        return condition, ""
+
+    try:
+        cloud_cover = int(round(float(raw_cloud_cover)))
+    except (TypeError, ValueError):
+        return condition, ""
+
+    cloud_cover = max(0, min(100, cloud_cover))
+    cloud_cover_text = str(cloud_cover)
+    if "zachmurzenie" in condition:
+        condition = f"{condition} ({cloud_cover}%)"
+    return condition, cloud_cover_text
+
+
 def air_quality_description(aqi: int) -> str:
     if aqi <= 20:
         return "bardzo dobra"
@@ -637,6 +656,20 @@ def pressure_text(weather: dict[str, Any]) -> tuple[str, str]:
         return "", ""
 
     return f"ciśnienie {pressure_hpa} hPa", str(pressure_hpa)
+
+
+def humidity_text(weather: dict[str, Any]) -> tuple[str, str]:
+    raw_humidity = weather.get("relative_humidity_2m")
+    if raw_humidity is None:
+        return "", ""
+
+    try:
+        humidity = int(round(float(raw_humidity)))
+    except (TypeError, ValueError):
+        return "", ""
+
+    humidity = max(0, min(100, humidity))
+    return f"wilgotność {humidity}%", str(humidity)
 
 
 def wind_direction_label(degrees: int) -> str:
@@ -774,7 +807,7 @@ def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
             "latitude": point.latitude,
             "longitude": point.longitude,
             "current": (
-                "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day,"
+                "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,cloud_cover,"
                 "wind_gusts_10m,wind_direction_10m,"
                 "pressure_msl,surface_pressure,"
                 "precipitation,rain,showers,snowfall"
@@ -819,13 +852,15 @@ def build_title(
     feels = round(float(weather.get("apparent_temperature", temp)))
     wind = round(float(weather.get("wind_speed_10m", 0.0)))
     code = int(weather.get("weather_code", -1))
-    condition = weather_description(code, weather.get("is_day"))
+    condition, cloud_cover_pct = condition_text(weather)
 
     precip = precipitation_text(weather)
     precip_clause = f", {precip}" if precip else ""
     wind_details, wind_details_clause, wind_gust, wind_direction, wind_direction_deg = wind_details_text(weather)
     pressure, pressure_hpa = pressure_text(weather)
     pressure_clause = f", {pressure}" if pressure else ""
+    humidity, humidity_pct = humidity_text(weather)
+    humidity_clause = f", {humidity}" if humidity else ""
     air, aqi = air_quality_text(air_quality)
     air_clause = f", {air}" if air else ""
     city_latin = city.translate(str.maketrans({"Ł": "L", "ł": "l"}))
@@ -850,9 +885,13 @@ def build_title(
         pressure=pressure,
         pressure_clause=pressure_clause,
         pressure_hpa=pressure_hpa,
+        humidity=humidity,
+        humidity_clause=humidity_clause,
+        humidity_pct=humidity_pct,
         air=air,
         air_clause=air_clause,
         aqi=aqi,
+        cloud_cover_pct=cloud_cover_pct,
         precipitation_mm=round(float(weather.get("precipitation", 0.0)), 2),
         rain_mm=round(float(weather.get("rain", 0.0)), 2),
         showers_mm=round(float(weather.get("showers", 0.0)), 2),

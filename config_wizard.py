@@ -18,15 +18,15 @@ TITLE_TEMPLATE_PRESETS = {
     "outside": (
         "(outside from {city_ascii}, quality 320kbps mp3 "
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h{wind_details_clause}, "
-        "{condition}{precip_clause}{pressure_clause}{air_clause})"
+        "{condition}{precip_clause}{pressure_clause}{humidity_clause}{air_clause})"
     ),
     "weather": (
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h{wind_details_clause}, "
-        "{condition}{precip_clause}{pressure_clause}{air_clause}"
+        "{condition}{precip_clause}{pressure_clause}{humidity_clause}{air_clause}"
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h{wind_details_clause}, {condition}{precip_clause}{pressure_clause}{air_clause}"
+        "wiatr {wind} km/h{wind_details_clause}, {condition}{precip_clause}{pressure_clause}{humidity_clause}{air_clause}"
     ),
 }
 
@@ -378,9 +378,9 @@ def main() -> int:
     title_mode = prompt_choice(
         "Tryb tytułu metadanych:",
         [
-            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, ciśnienie 1014 hPa, jakość powietrza: dobra (AQI 28)"),
-            ("outside", "outside from Lodz, quality 320kbps mp3 temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, ..."),
-            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, ..."),
+            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, zachmurzenie (82%), ciśnienie 1014 hPa, wilgotność 77%, jakość powietrza: dobra (AQI 28)"),
+            ("outside", "outside from Lodz, quality 320kbps mp3 temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, zachmurzenie (82%), ciśnienie 1014 hPa, wilgotność 77%, ..."),
+            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr 12 km/h, w porywach do 24 km/h, kierunek SW, zachmurzenie (82%), ciśnienie 1014 hPa, wilgotność 77%, ..."),
         ],
         default_mode,
     )
