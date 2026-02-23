@@ -203,30 +203,30 @@ write_index() {
 <body>
   <main>
     <h1>Icecast Metadata Updater</h1>
-    <p>Publiczny punkt aktualizacji programu. Paczka i manifest ponizej sa wykorzystywane przez auto-update.</p>
+    <p>Publiczny punkt aktualizacji programu. Paczka i manifest poniżej są wykorzystywane przez auto-update.</p>
     <section class="meta">
       <p><strong>Wersja:</strong> $version</p>
       <p><strong>Wygenerowano (UTC):</strong> $generated_at</p>
       <div class="links">
-        <a class="btn" href="$archive_name">Pobierz paczke</a>
+        <a class="btn" href="$archive_name">Pobierz paczkę</a>
         <a class="btn alt" href="$archive_name.sha256">Suma SHA256</a>
         <a class="btn alt" href="latest.json">Manifest latest.json</a>
         <a class="btn alt" href="$changelog_name">Changelog</a>
       </div>
     </section>
-    <p>Opis zmian znajduje sie w pliku <code>$changelog_name</code>.</p>
+    <p>Opis zmian znajduje się w pliku <code>$changelog_name</code>.</p>
     <section class="warn">
-      <p><strong>Wazne:</strong> samo pobranie paczki <code>.tar.gz</code> nie uruchamia programu.</p>
-      <p>Potrzebna jest instalacja z paczki (dziala takze od zera, bez wczesniejszej instalacji).</p>
+      <p><strong>Ważne:</strong> samo pobranie paczki <code>.tar.gz</code> nie uruchamia programu.</p>
+      <p>Potrzebna jest instalacja z paczki (działa także od zera, bez wcześniejszej instalacji).</p>
     </section>
     <p><strong>Instalacja od zera (znajomy):</strong></p>
     <ol>
-      <li>Pobierz paczke: <code>$archive_url_hint</code></li>
+      <li>Pobierz paczkę: <code>$archive_url_hint</code></li>
       <li>Rozpakuj: <code>tar -xzf $archive_name</code></li>
-      <li>Wejdz do katalogu i uruchom: <code>./install.sh</code></li>
-      <li>Opcjonalnie wlacz auto-update z manifestu ponizej</li>
+      <li>Wejdź do katalogu i uruchom: <code>./install.sh</code></li>
+      <li>Opcjonalnie włącz auto-update z manifestu poniżej</li>
     </ol>
-    <p>Przyklad wlaczenia automatycznej aktualizacji u znajomego:</p>
+    <p>Przykład włączenia automatycznej aktualizacji u znajomego:</p>
     <pre><code>cd ~/icecast-metadata-updater
 ./enable_auto_update.sh --manifest-url "$manifest_url_hint" --run-now</code></pre>
     <p>Wymagania: Linux, python3, systemd --user.</p>
