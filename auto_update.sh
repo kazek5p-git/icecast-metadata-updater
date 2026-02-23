@@ -164,4 +164,5 @@ fi
 "$PKG_DIR/update.sh" --install-dir "$INSTALL_DIR"
 
 echo "$LATEST_VERSION" > "$INSTALL_DIR/.installed_version"
-echo "Auto-update: zakonczono, nowa wersja $LATEST_VERSION"
+echo "Auto-update: zakonczono pomyslnie, nowa wersja $LATEST_VERSION"
+echo "Zycze dobrej pogody na streamach i w realu."

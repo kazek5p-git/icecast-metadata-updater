@@ -71,6 +71,7 @@ fi
 "$SCRIPT_DIR/install.sh" "${INSTALL_ARGS[@]}"
 
 echo
-echo "Aktualizacja zakonczona."
+echo "Aktualizacja zakonczona pomyslnie."
 echo "Wersja z katalogu: $SCRIPT_DIR"
 echo "Instalacja: $INSTALL_DIR"
+echo "Zycze dobrej pogody na streamach i w realu."
