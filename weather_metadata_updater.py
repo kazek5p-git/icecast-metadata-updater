@@ -94,7 +94,7 @@ DEFAULT_CONFIG = {
         "interval_seconds": 120,
         "dry_run": False,
     },
-    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}, {precip}",
+    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
 }
 
 
@@ -552,7 +552,7 @@ def precipitation_text(weather: dict[str, Any]) -> str:
     has_any_precip = precipitation >= 0.03 or has_rain or has_snow
 
     if not has_any_precip:
-        return "opad: brak"
+        return ""
 
     if has_rain and has_snow:
         label = mixed_precipitation_label(rain_total, snowfall)
@@ -595,13 +595,17 @@ def build_title(template: str, city: str, weather: dict[str, Any], mount_name: s
     code = int(weather.get("weather_code", -1))
     condition = weather_description(code, weather.get("is_day"))
 
+    precip = precipitation_text(weather)
+    precip_clause = f", {precip}" if precip else ""
+
     return template.format(
         city=city,
         temp=temp,
         feels=feels,
         wind=wind,
         condition=condition,
-        precip=precipitation_text(weather),
+        precip=precip,
+        precip_clause=precip_clause,
         precipitation_mm=round(float(weather.get("precipitation", 0.0)), 2),
         rain_mm=round(float(weather.get("rain", 0.0)), 2),
         showers_mm=round(float(weather.get("showers", 0.0)), 2),

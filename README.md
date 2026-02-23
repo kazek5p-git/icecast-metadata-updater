@@ -110,8 +110,9 @@ python3 weather_metadata_updater.py \
 - `--mount-prefix outside_` - prefiks mountów
 - `--interval-seconds 120` - interwał odświeżania
 - `--title-template "{city}: {temp}°C, ..."` - format tytułu
-  Dostępne pola: `{city}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`,
+  Dostępne pola: `{city}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
   `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
+  `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
 
 ## Uwaga dot. uprawnień
 
