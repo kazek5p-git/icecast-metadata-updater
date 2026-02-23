@@ -2,5 +2,5 @@
   "update": {
     "interval_seconds": 600
   },
-  "title_mode": "weather"
+  "title_mode": "outside"
 }
