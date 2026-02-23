@@ -18,15 +18,15 @@ TITLE_TEMPLATE_PRESETS = {
     "outside": (
         "(outside from {city_ascii}, quality 320kbps mp3 "
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause})"
+        "{condition}{precip_clause}{air_clause})"
     ),
     "weather": (
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause}"
+        "{condition}{precip_clause}{air_clause}"
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h, {condition}{precip_clause}"
+        "wiatr {wind} km/h, {condition}{precip_clause}{air_clause}"
     ),
 }
 
@@ -378,9 +378,9 @@ def main() -> int:
     title_mode = prompt_choice(
         "Tryb tytułu metadanych:",
         [
-            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
-            ("outside", "outside from Lodz, quality 320kbps mp3 ..."),
-            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
+            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr ..., powietrze: dobra (AQI 28)"),
+            ("outside", "outside from Lodz, quality 320kbps mp3 ..., powietrze: dobra (AQI 28)"),
+            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr ..., powietrze: dobra (AQI 28)"),
         ],
         default_mode,
     )

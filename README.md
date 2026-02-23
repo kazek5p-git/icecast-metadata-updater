@@ -11,9 +11,9 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 
 1. Pobiera aktywne źródła z `status-json.xsl`.
 2. Filtruje mounty zaczynające się od `outside_`.
-3. Pobiera geolokalizację miasta i aktualną pogodę z Open-Meteo.
-   Dane obejmują m.in. temperaturę, wiatr oraz opad (`precipitation/rain/showers/snowfall`),
-   w tym opady mieszane (`deszcz ze śniegiem`).
+3. Pobiera geolokalizację miasta, aktualną pogodę oraz jakość powietrza z Open-Meteo.
+   Dane obejmują m.in. temperaturę, wiatr, opad (`precipitation/rain/showers/snowfall`)
+   oraz europejski indeks jakości powietrza (`AQI`).
 4. Wysyła update przez Icecast: `/admin/metadata?mode=updinfo`.
    Na starszych instalacjach, gdy trzeba, automatycznie przechodzi na `/admin/metadata.xsl`.
 
@@ -283,9 +283,10 @@ python3 weather_metadata_updater.py \
 - `--title-mode classic|outside|weather` - szybki wybór gotowego formatu tytułu
 - `--title-template "(outside from {city_ascii}, quality 320kbps mp3 temperatura: {temp}°C, ...)"` - format tytułu
   Dostępne pola: `{city}`, `{city_ascii}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
-  `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
+  `{air}`, `{air_clause}`, `{aqi}`, `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
   `{city_ascii}` to nazwa miasta bez polskich znaków (np. `Łódź` -> `Lodz`).
   `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
+  `{air}` jest puste, gdy brak danych AQI, a `{air_clause}` to gotowy fragment z przecinkiem.
   Jeśli ustawisz własne `title_template`, to ma ono wyższy priorytet niż `title_mode`.
   Dla starszych konfiguracji ze starym domyślnym układem `classic` program pyta
   o potwierdzenie migracji tylko w trybie interaktywnym. W usłudze (bez TTY)

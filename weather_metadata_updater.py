@@ -100,15 +100,15 @@ TITLE_TEMPLATE_PRESETS = {
     "outside": (
         "(outside from {city_ascii}, quality 320kbps mp3 "
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause})"
+        "{condition}{precip_clause}{air_clause})"
     ),
     "weather": (
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause}"
+        "{condition}{precip_clause}{air_clause}"
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h, {condition}{precip_clause}"
+        "wiatr {wind} km/h, {condition}{precip_clause}{air_clause}"
     ),
 }
 
@@ -593,6 +593,37 @@ def weather_description(code: int, is_day: int | None = None) -> str:
     return WMO_WEATHER.get(code, f"kod pogody {code}")
 
 
+def air_quality_description(aqi: int) -> str:
+    if aqi <= 20:
+        return "bardzo dobra"
+    if aqi <= 40:
+        return "dobra"
+    if aqi <= 60:
+        return "umiarkowana"
+    if aqi <= 80:
+        return "słaba"
+    if aqi <= 100:
+        return "bardzo słaba"
+    return "ekstremalnie słaba"
+
+
+def air_quality_text(air_quality: dict[str, Any] | None) -> tuple[str, str]:
+    if not isinstance(air_quality, dict):
+        return "", ""
+
+    raw_aqi = air_quality.get("european_aqi")
+    if raw_aqi is None:
+        return "", ""
+
+    try:
+        aqi_value = int(round(float(raw_aqi)))
+    except (TypeError, ValueError):
+        return "", ""
+
+    label = air_quality_description(aqi_value)
+    return f"powietrze: {label} (AQI {aqi_value})", str(aqi_value)
+
+
 def rain_intensity_label(rain_mm: float) -> str:
     if rain_mm < 0.05:
         return "śladowy deszcz"
@@ -704,7 +735,30 @@ def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
     return current
 
 
-def build_title(template: str, city: str, weather: dict[str, Any], mount_name: str) -> str:
+def current_air_quality(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
+    params = urlencode(
+        {
+            "latitude": point.latitude,
+            "longitude": point.longitude,
+            "current": "european_aqi,pm2_5,pm10",
+            "timezone": cfg.timezone,
+        }
+    )
+    url = f"https://air-quality-api.open-meteo.com/v1/air-quality?{params}"
+    data = http_get_json(url)
+    current = data.get("current")
+    if not current:
+        raise ValueError(f"Brak danych jakości powietrza dla {point.name}")
+    return current
+
+
+def build_title(
+    template: str,
+    city: str,
+    weather: dict[str, Any],
+    mount_name: str,
+    air_quality: dict[str, Any] | None = None,
+) -> str:
     temp = round(float(weather.get("temperature_2m", 0.0)))
     feels = round(float(weather.get("apparent_temperature", temp)))
     wind = round(float(weather.get("wind_speed_10m", 0.0)))
@@ -713,6 +767,8 @@ def build_title(template: str, city: str, weather: dict[str, Any], mount_name: s
 
     precip = precipitation_text(weather)
     precip_clause = f", {precip}" if precip else ""
+    air, aqi = air_quality_text(air_quality)
+    air_clause = f", {air}" if air else ""
     city_latin = city.translate(str.maketrans({"Ł": "L", "ł": "l"}))
     city_ascii = unicodedata.normalize("NFKD", city_latin).encode("ascii", "ignore").decode("ascii")
     if not city_ascii:
@@ -727,6 +783,9 @@ def build_title(template: str, city: str, weather: dict[str, Any], mount_name: s
         condition=condition,
         precip=precip,
         precip_clause=precip_clause,
+        air=air,
+        air_clause=air_clause,
+        aqi=aqi,
         precipitation_mm=round(float(weather.get("precipitation", 0.0)), 2),
         rain_mm=round(float(weather.get("rain", 0.0)), 2),
         showers_mm=round(float(weather.get("showers", 0.0)), 2),
@@ -789,6 +848,7 @@ def run_cycle(cfg: RuntimeConfig, geocode_cache: dict[str, GeoPoint]) -> None:
         mount_city[mount] = city
 
     weather_cache: dict[str, dict[str, Any]] = {}
+    air_quality_cache: dict[str, dict[str, Any] | None] = {}
     geo_names: dict[str, str] = {}
 
     for city in sorted(set(mount_city.values())):
@@ -798,17 +858,24 @@ def run_cycle(cfg: RuntimeConfig, geocode_cache: dict[str, GeoPoint]) -> None:
         except Exception as exc:
             log(f"BLAD pogody dla miasta '{city}': {exc}")
             continue
+        try:
+            air_quality = current_air_quality(point, cfg)
+        except Exception as exc:
+            log(f"UWAGA brak danych jakości powietrza dla miasta '{city}': {exc}")
+            air_quality = None
         weather_cache[city] = weather
+        air_quality_cache[city] = air_quality
         geo_names[city] = point.name
 
     for mount in mounts:
         city_query = mount_city[mount]
         weather = weather_cache.get(city_query)
+        air_quality = air_quality_cache.get(city_query)
         city_name = geo_names.get(city_query)
         if weather is None or city_name is None:
             log(f"POMINIETO {mount}: brak danych pogodowych dla '{city_query}'")
             continue
-        title = build_title(cfg.title_template, city_name, weather, mount)
+        title = build_title(cfg.title_template, city_name, weather, mount, air_quality)
 
         if cfg.dry_run:
             log(f"DRY RUN {mount}: {title}")
