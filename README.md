@@ -22,6 +22,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `weather_metadata_updater.py` - główny skrypt
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
+- `make_installer_bundle.sh` - tworzy paczkę `.tar.gz` do przekazania znajomemu
 - `config.example.json` - przykładowa konfiguracja
 - `systemd/icecast-metadata-updater.service` - wzór usługi użytkownika systemd
 
@@ -40,11 +41,33 @@ cd icecast-metadata-updater
 ./install.sh
 ```
 
+Domyślnie instalator przy pierwszym uruchomieniu tworzy `config.json` z `config.example.json`
+(bez kopiowania Twojego lokalnego `config.json`).
+
 Instalacja do innego katalogu:
 
 ```bash
 ./install.sh --install-dir "$HOME/moj-updater-icecast"
 ```
+
+Jeśli świadomie chcesz skopiować lokalny `config.json` obok instalatora:
+
+```bash
+./install.sh --use-source-config
+```
+
+## Paczka dla znajomego
+
+Tworzenie paczki z najnowszą wersją:
+
+```bash
+./make_installer_bundle.sh
+```
+
+Skrypt utworzy pliki w `dist/`:
+
+- `icecast-metadata-updater-<wersja>.tar.gz`
+- `icecast-metadata-updater-<wersja>.tar.gz.sha256`
 
 ## Uruchomienie
 
