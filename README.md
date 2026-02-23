@@ -23,7 +23,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `config_wizard.py` - interaktywny kreator konfiguracji `config.json`
 - `install_online.sh` - instalator online (pobranie + weryfikacja + instalacja z `latest.json`)
 - `doctor.sh` - szybka diagnostyka konfiguracji, polaczenia i uslug
-- `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
+- `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog, opcjonalny check update przy starcie)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
 - `update.sh` - aktualizacja programu i restart usługi
 - `auto_update.sh` - silnik automatycznej aktualizacji z manifestu
@@ -184,6 +184,25 @@ Po stronie znajomego (jednorazowo):
 ```bash
 cd ~/icecast-metadata-updater
 ./enable_auto_update.sh --manifest-url "https://kazpar.pl/icecast-updater/latest.json" --run-now
+```
+
+Skrypt zapisuje wszystkie ustawienia aktualizacji do:
+
+- `~/icecast-metadata-updater/auto_update.conf`
+
+W tym pliku masz teraz w jednym miejscu:
+
+- adres `latest.json` (`UPDATE_MANIFEST_URL`),
+- interwał timera (`UPDATE_TIMER_INTERVAL`),
+- losowe opóźnienie (`UPDATE_TIMER_RANDOM_DELAY`),
+- sprawdzenie po starcie systemu (`UPDATE_TIMER_ON_BOOT_SEC`),
+- sprawdzenie przy starcie programu (`UPDATE_CHECK_ON_START`),
+- timeout sprawdzenia przy starcie (`UPDATE_CHECK_TIMEOUT_SEC`).
+
+Po ręcznej zmianie tych wartości uruchom ponownie:
+
+```bash
+./enable_auto_update.sh --manifest-url "https://kazpar.pl/icecast-updater/latest.json"
 ```
 
 Sprawdzenie statusu:
