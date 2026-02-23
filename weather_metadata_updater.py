@@ -71,6 +71,15 @@ POLISH_CITY_ALIASES = {
     "zielona gora": "Zielona Góra",
 }
 
+TITLE_TEMPLATE_PRESETS = {
+    "outside": (
+        "(outside from {city_ascii}, quality 320kbps mp3 "
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "{condition}{precip_clause})"
+    ),
+    "classic": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
+}
+
 
 DEFAULT_CONFIG = {
     "icecast": {
@@ -95,11 +104,7 @@ DEFAULT_CONFIG = {
         "interval_seconds": 120,
         "dry_run": False,
     },
-    "title_template": (
-        "(outside from {city_ascii}, quality 320kbps mp3 "
-        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause})"
-    ),
+    "title_mode": "outside",
 }
 
 
@@ -126,6 +131,7 @@ class RuntimeConfig:
     timezone: str
     interval_seconds: int
     dry_run: bool
+    title_mode: str
     title_template: str
 
 
@@ -271,11 +277,38 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
             deep_get(DEFAULT_CONFIG, "update", "dry_run"),
         )
     )
-    title_template = first_nonempty(
-        args.title_template,
-        deep_get(file_cfg, "title_template"),
-        deep_get(DEFAULT_CONFIG, "title_template"),
+    title_mode_raw = first_nonempty(
+        args.title_mode,
+        deep_get(file_cfg, "title_mode"),
+        deep_get(DEFAULT_CONFIG, "title_mode"),
+        "outside",
     )
+    title_mode = str(title_mode_raw).strip().lower()
+    if title_mode not in TITLE_TEMPLATE_PRESETS:
+        raise ValueError(
+            "Nieznany title_mode: %s (dostepne: %s)"
+            % (title_mode, ", ".join(sorted(TITLE_TEMPLATE_PRESETS.keys())))
+        )
+
+    title_template_cfg = deep_get(file_cfg, "title_template")
+    title_template = ""
+    effective_title_mode = title_mode
+
+    if args.title_template:
+        title_template = str(args.title_template)
+        effective_title_mode = "custom"
+    elif args.title_mode is not None or deep_get(file_cfg, "title_mode") is not None:
+        title_template = TITLE_TEMPLATE_PRESETS[title_mode]
+    elif isinstance(title_template_cfg, str) and title_template_cfg.strip():
+        title_template = title_template_cfg.strip()
+        for preset_name, preset_template in TITLE_TEMPLATE_PRESETS.items():
+            if title_template == preset_template:
+                effective_title_mode = preset_name
+                break
+        else:
+            effective_title_mode = "custom"
+    else:
+        title_template = TITLE_TEMPLATE_PRESETS[title_mode]
 
     city_overrides = deep_get(file_cfg, "streams", "city_overrides", default={})
     if not isinstance(city_overrides, dict):
@@ -296,6 +329,7 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
         timezone=str(timezone),
         interval_seconds=max(10, interval_seconds),
         dry_run=dry_run,
+        title_mode=effective_title_mode,
         title_template=str(title_template),
     )
 
@@ -735,6 +769,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--country-code", help="Geocoding country code, default PL")
     parser.add_argument("--language", help="Geocoding language, default pl")
     parser.add_argument("--timezone", help="Weather timezone, default Europe/Warsaw")
+    parser.add_argument(
+        "--title-mode",
+        help="Title preset mode: outside or classic",
+    )
     parser.add_argument("--title-template", help="Title template")
     parser.add_argument(
         "--dry-run",
@@ -757,8 +795,8 @@ def main() -> int:
         return 2
 
     log(
-        "Start: base_url=%s mount_prefix=%s interval=%ss dry_run=%s"
-        % (cfg.base_url, cfg.mount_prefix, cfg.interval_seconds, cfg.dry_run)
+        "Start: base_url=%s mount_prefix=%s interval=%ss dry_run=%s title_mode=%s"
+        % (cfg.base_url, cfg.mount_prefix, cfg.interval_seconds, cfg.dry_run, cfg.title_mode)
     )
 
     geocode_cache: dict[str, GeoPoint] = {}

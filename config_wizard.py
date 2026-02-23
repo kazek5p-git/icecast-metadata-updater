@@ -14,6 +14,15 @@ from typing import Any
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+TITLE_TEMPLATE_PRESETS = {
+    "outside": (
+        "(outside from {city_ascii}, quality 320kbps mp3 "
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "{condition}{precip_clause})"
+    ),
+    "classic": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
+}
+
 
 DEFAULT_CONFIG = {
     "icecast": {
@@ -38,11 +47,7 @@ DEFAULT_CONFIG = {
         "interval_seconds": 600,
         "dry_run": False,
     },
-    "title_template": (
-        "(outside from {city_ascii}, quality 320kbps mp3 "
-        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
-        "{condition}{precip_clause})"
-    ),
+    "title_mode": "outside",
 }
 
 
@@ -122,6 +127,24 @@ def prompt_minutes(label: str, default: int) -> int:
             print("Minimalna wartość to 1 minuta.")
             continue
         return value
+
+
+def prompt_choice(label: str, options: list[tuple[str, str]], default_key: str) -> str:
+    idx_map = {str(idx): key for idx, (key, _desc) in enumerate(options, start=1)}
+    while True:
+        print(label)
+        for idx, (key, desc) in enumerate(options, start=1):
+            marker = " (domyślnie)" if key == default_key else ""
+            print(f"  {idx}. {key}{marker} - {desc}")
+        raw = input("Wybór [ENTER = domyślny]: ").strip()
+        if not raw:
+            return default_key
+        if raw in idx_map:
+            return idx_map[raw]
+        raw_lower = raw.lower()
+        if any(raw_lower == key for key, _desc in options):
+            return raw_lower
+        print("Wpisz numer opcji albo nazwę trybu.")
 
 
 def prompt_password(label: str, existing_value: str | None) -> str:
@@ -342,6 +365,32 @@ def main() -> int:
     default_interval_minutes = max(1, round(current_interval_seconds / 60))
     interval_minutes = prompt_minutes("Interwał odświeżania (minuty)", default_interval_minutes)
     interval_seconds = interval_minutes * 60
+
+    existing_mode_raw = str(deep_get(config, "title_mode", default=DEFAULT_CONFIG["title_mode"])).lower().strip()
+    default_mode = existing_mode_raw if existing_mode_raw in TITLE_TEMPLATE_PRESETS else "outside"
+    title_mode = prompt_choice(
+        "Tryb tytułu metadanych:",
+        [
+            ("outside", "outside from Lodz, quality 320kbps mp3 ..."),
+            ("classic", "Łódź: 6°C, odczuwalna 4°C, wiatr ..."),
+        ],
+        default_mode,
+    )
+
+    existing_template_raw = deep_get(config, "title_template")
+    existing_template = (
+        str(existing_template_raw).strip()
+        if isinstance(existing_template_raw, str) and str(existing_template_raw).strip()
+        else ""
+    )
+    existing_is_custom = bool(existing_template) and existing_template not in TITLE_TEMPLATE_PRESETS.values()
+    if prompt_yes_no("Użyć własnego niestandardowego title_template?", existing_is_custom):
+        custom_default = existing_template if existing_template else TITLE_TEMPLATE_PRESETS[title_mode]
+        custom_template = prompt_text("Własny title_template", custom_default)
+        config["title_template"] = custom_template
+    else:
+        config.pop("title_template", None)
+    config["title_mode"] = title_mode
 
     weather_cfg = ensure_dict(config, "weather")
     if prompt_yes_no("Zmienić ustawienia pogody (kraj/język/strefa)?", False):
