@@ -9,6 +9,7 @@ INTERVAL=""
 RANDOM_DELAY=""
 ON_BOOT_SEC=""
 CHECK_ON_START=""
+CHECK_DELAY_SEC=""
 CHECK_TIMEOUT_SEC=""
 RUN_NOW=0
 DISABLE=0
@@ -17,6 +18,7 @@ DEFAULT_INTERVAL="1d"
 DEFAULT_RANDOM_DELAY="1h"
 DEFAULT_ON_BOOT_SEC="20m"
 DEFAULT_CHECK_ON_START="1"
+DEFAULT_CHECK_DELAY_SEC="60"
 DEFAULT_CHECK_TIMEOUT_SEC="180"
 
 SERVICE_NAME="icecast-metadata-updater-autoupdate.service"
@@ -36,6 +38,7 @@ Opcje:
   --on-boot-sec CZAS      OnBootSec dla timera (domyslnie: $DEFAULT_ON_BOOT_SEC)
   --check-on-start        Sprawdz aktualizacje przy starcie programu (start_updater.sh)
   --no-check-on-start     Nie sprawdzaj aktualizacji przy starcie programu
+  --check-delay-sec N     Opoznienie (sekundy) przed checkiem przy starcie programu (domyslnie: $DEFAULT_CHECK_DELAY_SEC)
   --check-timeout-sec N   Timeout sprawdzania przy starcie programu (domyslnie: $DEFAULT_CHECK_TIMEOUT_SEC)
   --run-now               Uruchom aktualizacje od razu po wlaczeniu timera
   --disable               Wylacz auto-update (timer+service)
@@ -91,6 +94,11 @@ while [[ $# -gt 0 ]]; do
       CHECK_TIMEOUT_SEC="$2"
       shift 2
       ;;
+    --check-delay-sec)
+      [[ $# -lt 2 ]] && { echo "Brak wartosci dla --check-delay-sec" >&2; exit 1; }
+      CHECK_DELAY_SEC="$2"
+      shift 2
+      ;;
     --run-now)
       RUN_NOW=1
       shift
@@ -135,6 +143,7 @@ if [[ -f "$CONFIG_PATH" ]]; then
   RANDOM_DELAY="${RANDOM_DELAY:-${UPDATE_TIMER_RANDOM_DELAY:-}}"
   ON_BOOT_SEC="${ON_BOOT_SEC:-${UPDATE_TIMER_ON_BOOT_SEC:-}}"
   CHECK_ON_START="${CHECK_ON_START:-${UPDATE_CHECK_ON_START:-}}"
+  CHECK_DELAY_SEC="${CHECK_DELAY_SEC:-${UPDATE_CHECK_ON_START_DELAY_SEC:-}}"
   CHECK_TIMEOUT_SEC="${CHECK_TIMEOUT_SEC:-${UPDATE_CHECK_TIMEOUT_SEC:-}}"
 fi
 
@@ -142,6 +151,7 @@ INTERVAL="${INTERVAL:-$DEFAULT_INTERVAL}"
 RANDOM_DELAY="${RANDOM_DELAY:-$DEFAULT_RANDOM_DELAY}"
 ON_BOOT_SEC="${ON_BOOT_SEC:-$DEFAULT_ON_BOOT_SEC}"
 CHECK_ON_START="${CHECK_ON_START:-$DEFAULT_CHECK_ON_START}"
+CHECK_DELAY_SEC="${CHECK_DELAY_SEC:-$DEFAULT_CHECK_DELAY_SEC}"
 CHECK_TIMEOUT_SEC="${CHECK_TIMEOUT_SEC:-$DEFAULT_CHECK_TIMEOUT_SEC}"
 
 if [[ -z "$MANIFEST_URL" ]]; then
@@ -151,6 +161,11 @@ fi
 
 if [[ "$CHECK_ON_START" != "0" && "$CHECK_ON_START" != "1" ]]; then
   echo "Niepoprawne CHECK_ON_START=$CHECK_ON_START (dopuszczalne: 0 albo 1)" >&2
+  exit 1
+fi
+
+if ! [[ "$CHECK_DELAY_SEC" =~ ^[0-9]+$ ]]; then
+  echo "Niepoprawne CHECK_DELAY_SEC=$CHECK_DELAY_SEC (musi byc liczba calkowita >= 0)" >&2
   exit 1
 fi
 
@@ -167,6 +182,7 @@ UPDATE_TIMER_INTERVAL="$INTERVAL"
 UPDATE_TIMER_RANDOM_DELAY="$RANDOM_DELAY"
 UPDATE_TIMER_ON_BOOT_SEC="$ON_BOOT_SEC"
 UPDATE_CHECK_ON_START="$CHECK_ON_START"
+UPDATE_CHECK_ON_START_DELAY_SEC="$CHECK_DELAY_SEC"
 UPDATE_CHECK_TIMEOUT_SEC="$CHECK_TIMEOUT_SEC"
 EOF
 
@@ -211,6 +227,7 @@ echo "Timer interval: $INTERVAL"
 echo "Timer random delay: $RANDOM_DELAY"
 echo "Timer on boot: $ON_BOOT_SEC"
 echo "Check on program start: $CHECK_ON_START"
+echo "Startup check delay (s): $CHECK_DELAY_SEC"
 echo "Startup check timeout (s): $CHECK_TIMEOUT_SEC"
 echo "Timer: $TIMER_NAME ($(systemctl --user is-active "$TIMER_NAME"), $(systemctl --user is-enabled "$TIMER_NAME"))"
 echo "Sprawdzenie: systemctl --user status $TIMER_NAME"

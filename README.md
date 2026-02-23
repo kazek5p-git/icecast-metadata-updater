@@ -197,6 +197,7 @@ W tym pliku masz teraz w jednym miejscu:
 - losowe opóźnienie (`UPDATE_TIMER_RANDOM_DELAY`),
 - sprawdzenie po starcie systemu (`UPDATE_TIMER_ON_BOOT_SEC`),
 - sprawdzenie przy starcie programu (`UPDATE_CHECK_ON_START`),
+- opóźnienie checka przy starcie programu (`UPDATE_CHECK_ON_START_DELAY_SEC`),
 - timeout sprawdzenia przy starcie (`UPDATE_CHECK_TIMEOUT_SEC`).
 
 Po ręcznej zmianie tych wartości uruchom ponownie:

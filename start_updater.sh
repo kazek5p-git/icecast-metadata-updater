@@ -27,6 +27,7 @@ log_watchdog() {
 
 run_startup_update_check() {
   local check_on_start
+  local check_delay
   local check_timeout
   local exit_code
 
@@ -51,6 +52,16 @@ run_startup_update_check() {
   if [[ ! -x "$PROJECT_DIR/auto_update.sh" ]]; then
     log_watchdog "STARTUP: brak auto_update.sh, pomijam sprawdzenie aktualizacji"
     return
+  fi
+
+  check_delay="${UPDATE_CHECK_ON_START_DELAY_SEC:-60}"
+  if [[ "$check_delay" =~ ^[0-9]+$ ]]; then
+    if [[ "$check_delay" -gt 0 ]]; then
+      log_watchdog "STARTUP: opoznienie sprawdzania aktualizacji o ${check_delay}s."
+      sleep "$check_delay"
+    fi
+  else
+    log_watchdog "STARTUP: niepoprawne UPDATE_CHECK_ON_START_DELAY_SEC=$check_delay, pomijam opoznienie."
   fi
 
   check_timeout="${UPDATE_CHECK_TIMEOUT_SEC:-180}"
