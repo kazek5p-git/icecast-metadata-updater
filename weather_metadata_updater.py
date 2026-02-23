@@ -673,7 +673,16 @@ def humidity_text(weather: dict[str, Any]) -> tuple[str, str]:
 
 
 def wind_direction_label(degrees: int) -> str:
-    directions = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+    directions = (
+        "północny",
+        "północno-wschodni",
+        "wschodni",
+        "południowo-wschodni",
+        "południowy",
+        "południowo-zachodni",
+        "zachodni",
+        "północno-zachodni",
+    )
     index = int(((degrees % 360) + 22.5) // 45) % len(directions)
     return directions[index]
 

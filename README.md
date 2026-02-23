@@ -306,7 +306,7 @@ python3 weather_metadata_updater.py \
   `{pressure}`, `{pressure_clause}`, `{pressure_hpa}`, `{humidity}`, `{humidity_clause}`, `{humidity_pct}`, `{air}`, `{air_clause}`, `{aqi}`,
   `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
   `{city_ascii}` to nazwa miasta bez polskich znaków (np. `Łódź` -> `Lodz`).
-  `{wind_details}` zawiera np. `w porywach do 24 km/h, kierunek SW`, a `{wind_details_clause}` to ten sam tekst z przecinkiem.
+  `{wind_details}` zawiera np. `w porywach do 24 km/h, kierunek południowo-zachodni`, a `{wind_details_clause}` to ten sam tekst z przecinkiem.
   Dla opisów z `zachmurzenie` pole `{condition}` automatycznie dopisuje procent, np. `zachmurzenie (82%)`.
   `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
   `{pressure}` jest puste, gdy brak danych ciśnienia, a `{pressure_clause}` to gotowy fragment z przecinkiem.
