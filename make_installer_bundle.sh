@@ -157,7 +157,50 @@ write_index() {
       padding: 24px;
       box-shadow: 0 10px 30px rgba(8, 20, 38, 0.07);
     }
+    .hero {
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border: 1px solid #cfe1ff;
+      border-radius: 14px;
+      background: linear-gradient(130deg, #edf6ff 0%, #fff8ec 50%, #edfaff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .hero-copy { min-width: 0; }
+    .hero-kicker {
+      margin: 0 0 4px;
+      color: #1b4f99;
+      font-size: 0.84rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
     h1 { margin: 0 0 8px; font-size: 1.55rem; }
+    .icon-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .icon-chip {
+      width: 62px;
+      height: 62px;
+      border-radius: 14px;
+      border: 1px solid #d6e5fb;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 14px rgba(20, 49, 90, 0.1);
+    }
+    .icon-chip svg {
+      width: 38px;
+      height: 38px;
+      display: block;
+    }
     p { margin: 0 0 12px; color: var(--muted); }
     .meta {
       margin: 18px 0;
@@ -207,12 +250,73 @@ write_index() {
       font-size: 0.95rem;
     }
     code { font-family: "Cascadia Code", "Fira Code", monospace; }
+    @media (max-width: 760px) {
+      main { padding: 18px; }
+      .hero {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .icon-row {
+        justify-content: flex-start;
+      }
+      .icon-chip {
+        width: 56px;
+        height: 56px;
+      }
+      .icon-chip svg {
+        width: 34px;
+        height: 34px;
+      }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>Icecast Metadata Updater</h1>
-    <p>Publiczny punkt aktualizacji programu. Paczka i manifest poniżej są wykorzystywane przez auto-update.</p>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="hero-kicker">Pogoda + metadane</p>
+        <h1>Icecast Metadata Updater</h1>
+        <p>Publiczny punkt aktualizacji programu. Paczka i manifest poniżej są wykorzystywane przez auto-update.</p>
+      </div>
+      <div class="icon-row" aria-hidden="true">
+        <div class="icon-chip">
+          <svg viewBox="0 0 64 64" role="presentation">
+            <circle cx="32" cy="32" r="12" fill="#ffbe3d"/>
+            <g stroke="#ff9d00" stroke-width="4" stroke-linecap="round">
+              <line x1="32" y1="6" x2="32" y2="14"/>
+              <line x1="32" y1="50" x2="32" y2="58"/>
+              <line x1="6" y1="32" x2="14" y2="32"/>
+              <line x1="50" y1="32" x2="58" y2="32"/>
+              <line x1="14" y1="14" x2="19" y2="19"/>
+              <line x1="45" y1="45" x2="50" y2="50"/>
+              <line x1="14" y1="50" x2="19" y2="45"/>
+              <line x1="45" y1="19" x2="50" y2="14"/>
+            </g>
+          </svg>
+        </div>
+        <div class="icon-chip">
+          <svg viewBox="0 0 64 64" role="presentation">
+            <path d="M20 40h24a10 10 0 0 0 0-20 13 13 0 0 0-24-4 9 9 0 0 0 0 24z" fill="#7db4ff"/>
+            <g stroke="#1f7bf2" stroke-width="3.5" stroke-linecap="round">
+              <line x1="22" y1="46" x2="18" y2="54"/>
+              <line x1="32" y1="46" x2="28" y2="54"/>
+              <line x1="42" y1="46" x2="38" y2="54"/>
+            </g>
+          </svg>
+        </div>
+        <div class="icon-chip">
+          <svg viewBox="0 0 64 64" role="presentation">
+            <circle cx="32" cy="32" r="4" fill="#6aa9ff"/>
+            <g stroke="#6aa9ff" stroke-width="3.5" stroke-linecap="round">
+              <line x1="32" y1="14" x2="32" y2="50"/>
+              <line x1="14" y1="32" x2="50" y2="32"/>
+              <line x1="19" y1="19" x2="45" y2="45"/>
+              <line x1="45" y1="19" x2="19" y2="45"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
     <section class="meta">
       <p><strong>Wersja:</strong> $version</p>
       <p><strong>Wygenerowano (UTC):</strong> $generated_at</p>
