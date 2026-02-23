@@ -20,6 +20,10 @@ from urllib.parse import urlencode, unquote, urlparse
 from urllib.request import Request, urlopen
 
 
+# ---------------------------------------------------------------------------
+# Sekcja: Slowniki i stale aplikacji
+# ---------------------------------------------------------------------------
+
 WMO_WEATHER = {
     0: "bezchmurnie",
     1: "głównie pogodnie",
@@ -75,6 +79,35 @@ PRECIPITATION_WEATHER_CODES = {
     96,
     99,
 }
+
+WIND_DIRECTIONS = (
+    "północny",
+    "północno-wschodni",
+    "wschodni",
+    "południowo-wschodni",
+    "południowy",
+    "południowo-zachodni",
+    "zachodni",
+    "północno-zachodni",
+)
+
+CURRENT_WEATHER_FIELDS = (
+    "temperature_2m,"
+    "apparent_temperature,"
+    "relative_humidity_2m,"
+    "weather_code,"
+    "is_day,"
+    "cloud_cover,"
+    "wind_speed_10m,"
+    "wind_gusts_10m,"
+    "wind_direction_10m,"
+    "pressure_msl,"
+    "surface_pressure,"
+    "precipitation,"
+    "rain,"
+    "showers,"
+    "snowfall"
+)
 
 POLISH_CITY_ALIASES = {
     "bialystok": "Białystok",
@@ -142,6 +175,10 @@ DEFAULT_CONFIG = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Sekcja: Modele runtime
+# ---------------------------------------------------------------------------
+
 @dataclass
 class GeoPoint:
     name: str
@@ -168,6 +205,10 @@ class RuntimeConfig:
     title_mode: str
     title_template: str
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: Pomocnicze funkcje wspolne
+# ---------------------------------------------------------------------------
 
 def log(message: str) -> None:
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -199,6 +240,10 @@ def first_nonempty(*values: Any) -> Any:
         return value
     return None
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: Odczyt konfiguracji i budowanie RuntimeConfig
+# ---------------------------------------------------------------------------
 
 def parse_darkice_config(path: Path) -> dict[str, str]:
     parser = configparser.ConfigParser(interpolation=None)
@@ -405,6 +450,10 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
     )
 
 
+# ---------------------------------------------------------------------------
+# Sekcja: HTTP / API
+# ---------------------------------------------------------------------------
+
 def auth_header(username: str, password: str) -> str:
     token = f"{username}:{password}".encode("utf-8")
     return "Basic " + base64.b64encode(token).decode("ascii")
@@ -458,6 +507,10 @@ def http_get_text(
     assert last_error is not None
     raise last_error
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: Odczyt mountow Icecast i mapowanie mount -> miasto
+# ---------------------------------------------------------------------------
 
 def extract_mount(source: dict[str, Any]) -> str | None:
     listen_url = str(source.get("listenurl", "")).strip()
@@ -516,6 +569,10 @@ def guess_city_from_mount(mount_name: str, prefix: str, overrides: dict[str, str
 
     return " ".join(part.capitalize() for part in decoded.split())
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: Geokodowanie
+# ---------------------------------------------------------------------------
 
 def geocode_open_meteo(city: str, cfg: RuntimeConfig, with_country_filter: bool) -> GeoPoint | None:
     params_data = {
@@ -586,6 +643,10 @@ def geocode_city(city: str, cfg: RuntimeConfig, cache: dict[str, GeoPoint]) -> G
     cache[city] = point
     return point
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: Formatowanie danych pogodowych
+# ---------------------------------------------------------------------------
 
 def weather_description(code: int, is_day: int | None = None) -> str:
     if code == 0 and is_day is not None:
@@ -673,18 +734,8 @@ def humidity_text(weather: dict[str, Any]) -> tuple[str, str]:
 
 
 def wind_direction_label(degrees: int) -> str:
-    directions = (
-        "północny",
-        "północno-wschodni",
-        "wschodni",
-        "południowo-wschodni",
-        "południowy",
-        "południowo-zachodni",
-        "zachodni",
-        "północno-zachodni",
-    )
-    index = int(((degrees % 360) + 22.5) // 45) % len(directions)
-    return directions[index]
+    index = int(((degrees % 360) + 22.5) // 45) % len(WIND_DIRECTIONS)
+    return WIND_DIRECTIONS[index]
 
 
 def wind_details_text(weather: dict[str, Any]) -> tuple[str, str, str, str, str]:
@@ -810,18 +861,16 @@ def precipitation_text(weather: dict[str, Any]) -> str:
     return f"opad: {rain_intensity_label(rain_total)} ({format_amount(rain_total, 'mm')})"
 
 
+# ---------------------------------------------------------------------------
+# Sekcja: Pobieranie danych pogodowych / jakosci powietrza
+# ---------------------------------------------------------------------------
+
 def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
     params = urlencode(
         {
             "latitude": point.latitude,
             "longitude": point.longitude,
-            "current": (
-                "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,cloud_cover,"
-                "wind_speed_10m,"
-                "wind_gusts_10m,wind_direction_10m,"
-                "pressure_msl,surface_pressure,"
-                "precipitation,rain,showers,snowfall"
-            ),
+            "current": CURRENT_WEATHER_FIELDS,
             "wind_speed_unit": "kmh",
             "timezone": cfg.timezone,
         }
@@ -850,6 +899,10 @@ def current_air_quality(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
         raise ValueError(f"Brak danych jakości powietrza dla {point.name}")
     return current
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: Skladanie tytulu i aktualizacja metadanych Icecast
+# ---------------------------------------------------------------------------
 
 def build_title(
     template: str,
@@ -950,6 +1003,10 @@ def update_mount_metadata(cfg: RuntimeConfig, mount_name: str, title: str) -> tu
     return False, last_message
 
 
+# ---------------------------------------------------------------------------
+# Sekcja: Cykl pracy programu
+# ---------------------------------------------------------------------------
+
 def run_cycle(cfg: RuntimeConfig, geocode_cache: dict[str, GeoPoint]) -> None:
     mounts = list_outside_mounts(cfg)
     if not mounts:
@@ -1007,6 +1064,10 @@ def run_cycle(cfg: RuntimeConfig, geocode_cache: dict[str, GeoPoint]) -> None:
         else:
             log(f"BLAD {mount}: {message}")
 
+
+# ---------------------------------------------------------------------------
+# Sekcja: CLI i punkt startowy
+# ---------------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
