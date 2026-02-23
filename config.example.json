@@ -1,0 +1,25 @@
+{
+  "icecast": {
+    "base_url": "http://127.0.0.1:8888",
+    "source_user": "source",
+    "source_password": "CHANGE_ME",
+    "metadata_user": "admin",
+    "metadata_password": "CHANGE_ME_ADMIN"
+  },
+  "streams": {
+    "mount_prefix": "outside_",
+    "city_overrides": {
+      "outside_zabki": "Zabki"
+    }
+  },
+  "weather": {
+    "country_code": "PL",
+    "language": "pl",
+    "timezone": "Europe/Warsaw"
+  },
+  "update": {
+    "interval_seconds": 120,
+    "dry_run": false
+  },
+  "title_template": "{city}: {temp}C, odczuwalna {feels}C, wiatr {wind} km/h, {condition}"
+}
