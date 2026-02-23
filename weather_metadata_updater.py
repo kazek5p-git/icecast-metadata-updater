@@ -99,16 +99,16 @@ POLISH_CITY_ALIASES = {
 TITLE_TEMPLATE_PRESETS = {
     "outside": (
         "(outside from {city_ascii}, quality 320kbps mp3 "
-        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h{wind_details_clause}, "
         "{condition}{precip_clause}{pressure_clause}{air_clause})"
     ),
     "weather": (
-        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h{wind_details_clause}, "
         "{condition}{precip_clause}{pressure_clause}{air_clause}"
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h, {condition}{precip_clause}{pressure_clause}{air_clause}"
+        "wiatr {wind} km/h{wind_details_clause}, {condition}{precip_clause}{pressure_clause}{air_clause}"
     ),
 }
 
@@ -639,6 +639,45 @@ def pressure_text(weather: dict[str, Any]) -> tuple[str, str]:
     return f"ciśnienie {pressure_hpa} hPa", str(pressure_hpa)
 
 
+def wind_direction_label(degrees: int) -> str:
+    directions = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+    index = int(((degrees % 360) + 22.5) // 45) % len(directions)
+    return directions[index]
+
+
+def wind_details_text(weather: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    gust_text = ""
+    gust_kmh = ""
+    direction_text = ""
+    direction_short = ""
+    direction_deg = ""
+
+    raw_gust = weather.get("wind_gusts_10m")
+    if raw_gust is not None:
+        try:
+            gust_value = int(round(float(raw_gust)))
+        except (TypeError, ValueError):
+            gust_value = None
+        if gust_value is not None and gust_value > 0:
+            gust_kmh = str(gust_value)
+            gust_text = f"porywy {gust_value} km/h"
+
+    raw_direction = weather.get("wind_direction_10m")
+    if raw_direction is not None:
+        try:
+            direction_value = int(round(float(raw_direction))) % 360
+        except (TypeError, ValueError):
+            direction_value = None
+        if direction_value is not None:
+            direction_deg = str(direction_value)
+            direction_short = wind_direction_label(direction_value)
+            direction_text = f"kierunek {direction_short}"
+
+    details = ", ".join(part for part in (gust_text, direction_text) if part)
+    details_clause = f", {details}" if details else ""
+    return details, details_clause, gust_kmh, direction_short, direction_deg
+
+
 def rain_intensity_label(rain_mm: float) -> str:
     if rain_mm < 0.05:
         return "śladowy deszcz"
@@ -736,6 +775,7 @@ def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
             "longitude": point.longitude,
             "current": (
                 "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day,"
+                "wind_gusts_10m,wind_direction_10m,"
                 "pressure_msl,surface_pressure,"
                 "precipitation,rain,showers,snowfall"
             ),
@@ -783,6 +823,7 @@ def build_title(
 
     precip = precipitation_text(weather)
     precip_clause = f", {precip}" if precip else ""
+    wind_details, wind_details_clause, wind_gust, wind_direction, wind_direction_deg = wind_details_text(weather)
     pressure, pressure_hpa = pressure_text(weather)
     pressure_clause = f", {pressure}" if pressure else ""
     air, aqi = air_quality_text(air_quality)
@@ -798,6 +839,11 @@ def build_title(
         temp=temp,
         feels=feels,
         wind=wind,
+        wind_details=wind_details,
+        wind_details_clause=wind_details_clause,
+        wind_gust=wind_gust,
+        wind_direction=wind_direction,
+        wind_direction_deg=wind_direction_deg,
         condition=condition,
         precip=precip,
         precip_clause=precip_clause,

@@ -301,10 +301,12 @@ python3 weather_metadata_updater.py \
 - `--interval-seconds 120` - interwał odświeżania
 - `--title-mode classic|outside|weather` - szybki wybór gotowego formatu tytułu
 - `--title-template "(outside from {city_ascii}, quality 320kbps mp3 temperatura: {temp}°C, ...)"` - format tytułu
-  Dostępne pola: `{city}`, `{city_ascii}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
+  Dostępne pola: `{city}`, `{city_ascii}`, `{temp}`, `{feels}`, `{wind}`, `{wind_details}`, `{wind_details_clause}`,
+  `{wind_gust}`, `{wind_direction}`, `{wind_direction_deg}`, `{condition}`, `{precip}`, `{precip_clause}`,
   `{pressure}`, `{pressure_clause}`, `{pressure_hpa}`, `{air}`, `{air_clause}`, `{aqi}`,
   `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
   `{city_ascii}` to nazwa miasta bez polskich znaków (np. `Łódź` -> `Lodz`).
+  `{wind_details}` zawiera np. `porywy 24 km/h, kierunek SW`, a `{wind_details_clause}` to ten sam tekst z przecinkiem.
   `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
   `{pressure}` jest puste, gdy brak danych ciśnienia, a `{pressure_clause}` to gotowy fragment z przecinkiem.
   `{air}` jest puste, gdy brak danych AQI, a `{air_clause}` to gotowy fragment z przecinkiem.
