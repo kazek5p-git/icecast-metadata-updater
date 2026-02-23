@@ -17,7 +17,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 ## Pliki
 
 - `weather_metadata_updater.py` - główny skrypt
-- `start_updater.sh` - start produkcyjny (UTF-8, lock, log)
+- `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `config.example.json` - przykładowa konfiguracja
 
 ## Uruchomienie
@@ -43,6 +43,7 @@ Autostart po restarcie systemu (użytkownik `kazek`) jest realizowany przez `cro
 Log działania:
 
 - `logs/updater.log`
+- przy awarii pojawi się wpis `WATCHDOG: ... restart in 10s`
 
 ## Konfiguracja
 

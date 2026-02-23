@@ -4,6 +4,8 @@ set -euo pipefail
 PROJECT_DIR="/home/kazek/icecast-metadata-updater"
 LOG_DIR="$PROJECT_DIR/logs"
 LOCK_FILE="/tmp/icecast_weather_updater.lock"
+LOG_FILE="$LOG_DIR/updater.log"
+RESTART_DELAY_SECONDS=10
 
 mkdir -p "$LOG_DIR"
 
@@ -12,7 +14,24 @@ export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 export PYTHONIOENCODING=UTF-8
 
-exec /usr/bin/flock -n "$LOCK_FILE" \
-  /usr/bin/python3 "$PROJECT_DIR/weather_metadata_updater.py" \
-  --config "$PROJECT_DIR/config.json" \
-  >> "$LOG_DIR/updater.log" 2>&1
+# Trzymamy lock przez caly czas dzialania watchdoga, by nie odpalic 2 instancji.
+exec 9>"$LOCK_FILE"
+if ! /usr/bin/flock -n 9; then
+  exit 0
+fi
+
+while true; do
+  if /usr/bin/python3 "$PROJECT_DIR/weather_metadata_updater.py" \
+    --config "$PROJECT_DIR/config.json" \
+    >> "$LOG_FILE" 2>&1; then
+    EXIT_CODE=0
+  else
+    EXIT_CODE=$?
+  fi
+  printf '[%s] WATCHDOG: updater exited with code %s, restart in %ss\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" \
+    "$EXIT_CODE" \
+    "$RESTART_DELAY_SECONDS" \
+    >> "$LOG_FILE"
+  sleep "$RESTART_DELAY_SECONDS"
+done
