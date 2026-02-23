@@ -378,8 +378,8 @@ def main() -> int:
     title_mode = prompt_choice(
         "Tryb tytułu metadanych:",
         [
-            ("outside", "outside from Lodz, quality 320kbps mp3 ..."),
             ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
+            ("outside", "outside from Lodz, quality 320kbps mp3 ..."),
             ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
         ],
         default_mode,
