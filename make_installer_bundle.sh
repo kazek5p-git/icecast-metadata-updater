@@ -231,7 +231,7 @@ write_index() {
       <p><strong>Ważne:</strong> samo pobranie paczki <code>.tar.gz</code> nie uruchamia programu.</p>
       <p>Potrzebna jest instalacja z paczki (działa także od zera, bez wcześniejszej instalacji).</p>
     </section>
-    <p><strong>Instalacja od zera (znajomy):</strong></p>
+    <p><strong>Instalacja ręczna (manualna):</strong></p>
     <ol>
       <li>Pobierz paczkę: <code>$archive_url_hint</code></li>
       <li>Rozpakuj: <code>tar -xzf $archive_name</code></li>
@@ -240,7 +240,7 @@ write_index() {
       <li>Sprawdź konfigurację: <code>python3 ~/icecast-metadata-updater/weather_metadata_updater.py --once --dry-run</code></li>
       <li>Opcjonalnie włącz auto-update z manifestu poniżej</li>
     </ol>
-    <p>Przykład włączenia automatycznej aktualizacji u znajomego:</p>
+    <p>Przykład włączenia automatycznej aktualizacji:</p>
     <pre><code>cd ~/icecast-metadata-updater
 ./enable_auto_update.sh --manifest-url "$manifest_url_hint" --run-now</code></pre>
     <p>Wymagania: Linux, python3, systemd --user.</p>
@@ -374,7 +374,7 @@ if [[ -n "$PUBLISH_DIR" ]]; then
     echo "URL changelogu: $SITE_URL/$CHANGELOG_NAME"
   fi
 fi
-echo "Instalacja u znajomego:"
+echo "Instalacja ręczna (manualna):"
 echo "  tar -xzf $ARCHIVE_NAME"
 echo "  cd $PKG_NAME"
 echo "  ./install.sh"
