@@ -814,7 +814,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timezone", help="Weather timezone, default Europe/Warsaw")
     parser.add_argument(
         "--title-mode",
-        help="Title preset mode: outside, weather or classic",
+        help="Title preset mode: outside, classic or weather",
     )
     parser.add_argument("--title-template", help="Title template")
     parser.add_argument(

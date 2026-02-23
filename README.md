@@ -71,7 +71,7 @@ Kreator prowadzi krok po kroku przez:
 - adres Icecast (lokalny lub zdalny),
 - loginy i hasła,
 - interwał odświeżania,
-- wybór trybu tytułu (`outside` / `weather` / `classic`),
+- wybór trybu tytułu (`outside` / `classic` / `weather`),
 - opcjonalne mapowania `city_overrides`,
 - test połączenia do `status-json.xsl`.
 
@@ -280,7 +280,7 @@ python3 weather_metadata_updater.py \
 - `--dry-run` - nie wysyła update, tylko loguje
 - `--mount-prefix outside_` - prefiks mountów
 - `--interval-seconds 120` - interwał odświeżania
-- `--title-mode outside|weather|classic` - szybki wybór gotowego formatu tytułu
+- `--title-mode outside|classic|weather` - szybki wybór gotowego formatu tytułu
 - `--title-template "(outside from {city_ascii}, quality 320kbps mp3 temperatura: {temp}°C, ...)"` - format tytułu
   Dostępne pola: `{city}`, `{city_ascii}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
   `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.

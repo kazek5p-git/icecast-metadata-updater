@@ -376,8 +376,8 @@ def main() -> int:
         "Tryb tytułu metadanych:",
         [
             ("outside", "outside from Lodz, quality 320kbps mp3 ..."),
-            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
             ("classic", "Łódź: 6°C, odczuwalna 4°C, wiatr ..."),
+            ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
         ],
         default_mode,
     )
