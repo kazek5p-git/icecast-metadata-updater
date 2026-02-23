@@ -77,6 +77,10 @@ TITLE_TEMPLATE_PRESETS = {
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
         "{condition}{precip_clause})"
     ),
+    "weather": (
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "{condition}{precip_clause}"
+    ),
     "classic": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
 }
 
@@ -810,7 +814,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timezone", help="Weather timezone, default Europe/Warsaw")
     parser.add_argument(
         "--title-mode",
-        help="Title preset mode: outside or classic",
+        help="Title preset mode: outside, weather or classic",
     )
     parser.add_argument("--title-template", help="Title template")
     parser.add_argument(
