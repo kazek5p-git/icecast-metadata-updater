@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import configparser
+import html
 import json
 import re
 import sys
@@ -518,6 +519,18 @@ def build_title(template: str, city: str, weather: dict[str, Any], mount_name: s
     )
 
 
+def parse_icecast_message(body: str) -> str:
+    xml_match = re.search(r"<message>(.*?)</message>", body, flags=re.IGNORECASE | re.DOTALL)
+    if xml_match:
+        return html.unescape(xml_match.group(1).strip())
+
+    html_match = re.search(r"Message:\\s*([^<\\n\\r]+)", body, flags=re.IGNORECASE)
+    if html_match:
+        return html.unescape(html_match.group(1).strip())
+
+    return body.strip() or "Nieznana odpowiedz Icecast"
+
+
 def update_mount_metadata(cfg: RuntimeConfig, mount_name: str, title: str) -> tuple[bool, str]:
     params = urlencode(
         {
@@ -527,13 +540,22 @@ def update_mount_metadata(cfg: RuntimeConfig, mount_name: str, title: str) -> tu
         },
         encoding="utf-8",
     )
-    url = f"{cfg.base_url}/admin/metadata?{params}"
-    body = http_get_text(url, auth=(cfg.metadata_user, cfg.metadata_password))
-    message_match = re.search(r"<message>(.*?)</message>", body, flags=re.IGNORECASE | re.DOTALL)
-    message = message_match.group(1).strip() if message_match else body.strip()
-    lowered = message.lower()
-    success = "successful" in lowered
-    return success, message
+    endpoints = ("/admin/metadata", "/admin/metadata.xsl")
+    last_message = "Brak odpowiedzi z Icecast"
+
+    for endpoint in endpoints:
+        url = f"{cfg.base_url}{endpoint}?{params}"
+        body = http_get_text(url, auth=(cfg.metadata_user, cfg.metadata_password))
+        message = parse_icecast_message(body)
+        lowered = message.lower()
+        if "metadata update successful" in lowered:
+            return True, f"{message} ({endpoint})"
+
+        last_message = f"{message} ({endpoint})"
+        if "mountpoint will not accept url updates" not in lowered:
+            break
+
+    return False, last_message
 
 
 def run_cycle(cfg: RuntimeConfig, geocode_cache: dict[str, GeoPoint]) -> None:

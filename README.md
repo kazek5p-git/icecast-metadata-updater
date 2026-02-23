@@ -13,6 +13,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 2. Filtruje mounty zaczynające się od `outside_`.
 3. Pobiera geolokalizację miasta i aktualną pogodę z Open-Meteo.
 4. Wysyła update przez Icecast: `/admin/metadata?mode=updinfo`.
+   Na starszych instalacjach, gdy trzeba, automatycznie przechodzi na `/admin/metadata.xsl`.
 
 ## Pliki
 
