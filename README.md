@@ -23,6 +23,9 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
 - `update.sh` - aktualizacja programu i restart usługi
+- `auto_update.sh` - silnik automatycznej aktualizacji z manifestu
+- `enable_auto_update.sh` - włączenie/wyłączenie auto-update (timer systemd użytkownika)
+- `auto_update.example.conf` - przykład konfiguracji auto-update
 - `make_installer_bundle.sh` - tworzy paczkę `.tar.gz` do przekazania znajomemu
 - `config.example.json` - przykładowa konfiguracja
 - `systemd/icecast-metadata-updater.service` - wzór usługi użytkownika systemd
@@ -69,6 +72,7 @@ Skrypt utworzy pliki w `dist/`:
 
 - `icecast-metadata-updater-<wersja>.tar.gz`
 - `icecast-metadata-updater-<wersja>.tar.gz.sha256`
+- `latest.json` (manifest dla auto-update)
 
 Aktualizacja u znajomego po wypakowaniu nowej paczki:
 
@@ -80,6 +84,40 @@ Aktualizacja u znajomego przy instalacji z Git:
 
 ```bash
 ./update.sh --pull
+```
+
+## Auto-update z domeny
+
+Po stronie autora (u Ciebie):
+
+1. Zbuduj paczkę:
+
+```bash
+./make_installer_bundle.sh
+```
+
+2. Wrzuć na serwer WWW (np. `kazpar.pl`) pliki z `dist/`:
+
+- `icecast-metadata-updater-<wersja>.tar.gz`
+- `latest.json`
+
+Po stronie znajomego (jednorazowo):
+
+```bash
+cd ~/icecast-metadata-updater
+./enable_auto_update.sh --manifest-url "https://kazpar.pl/icecast-updater/latest.json" --run-now
+```
+
+Sprawdzenie statusu:
+
+```bash
+systemctl --user status icecast-metadata-updater-autoupdate.timer
+```
+
+Wyłączenie auto-update:
+
+```bash
+./enable_auto_update.sh --disable
 ```
 
 ## Uruchomienie

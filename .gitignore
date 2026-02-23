@@ -11,6 +11,10 @@ __pycache__/
 dist/
 build/
 
+# Local runtime state
+.installed_version
+auto_update.conf
+
 # OS files
 .DS_Store
 Thumbs.db

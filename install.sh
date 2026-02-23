@@ -32,6 +32,27 @@ require_cmd() {
   fi
 }
 
+detect_source_version() {
+  if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+    head -n 1 "$SCRIPT_DIR/VERSION" | tr -d '[:space:]'
+    return 0
+  fi
+
+  if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "$SCRIPT_DIR" rev-parse --short HEAD
+    return 0
+  fi
+
+  local base
+  base="$(basename "$SCRIPT_DIR")"
+  if [[ "$base" =~ ^icecast-metadata-updater-([0-9a-fA-F]{7,40})$ ]]; then
+    echo "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  echo "unknown"
+}
+
 copy_file() {
   local src="$1"
   local dst="$2"
@@ -85,6 +106,9 @@ fi
 for needed in \
   "$SCRIPT_DIR/weather_metadata_updater.py" \
   "$SCRIPT_DIR/start_updater.sh" \
+  "$SCRIPT_DIR/auto_update.sh" \
+  "$SCRIPT_DIR/auto_update.example.conf" \
+  "$SCRIPT_DIR/enable_auto_update.sh" \
   "$SCRIPT_DIR/update.sh" \
   "$SCRIPT_DIR/config.example.json" \
   "$SCRIPT_DIR/systemd/icecast-metadata-updater.service"; do
@@ -98,6 +122,9 @@ mkdir -p "$INSTALL_DIR" "$INSTALL_DIR/systemd" "$INSTALL_DIR/logs" "$USER_SYSTEM
 
 copy_file "$SCRIPT_DIR/weather_metadata_updater.py" "$INSTALL_DIR/weather_metadata_updater.py"
 copy_file "$SCRIPT_DIR/start_updater.sh" "$INSTALL_DIR/start_updater.sh"
+copy_file "$SCRIPT_DIR/auto_update.sh" "$INSTALL_DIR/auto_update.sh"
+copy_file "$SCRIPT_DIR/auto_update.example.conf" "$INSTALL_DIR/auto_update.example.conf"
+copy_file "$SCRIPT_DIR/enable_auto_update.sh" "$INSTALL_DIR/enable_auto_update.sh"
 copy_file "$SCRIPT_DIR/update.sh" "$INSTALL_DIR/update.sh"
 copy_file "$SCRIPT_DIR/install.sh" "$INSTALL_DIR/install.sh"
 copy_file "$SCRIPT_DIR/README.md" "$INSTALL_DIR/README.md"
@@ -108,7 +135,8 @@ if [[ -f "$SCRIPT_DIR/make_installer_bundle.sh" ]]; then
   chmod +x "$INSTALL_DIR/make_installer_bundle.sh"
 fi
 
-chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh"
+chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/auto_update.sh" \
+  "$INSTALL_DIR/enable_auto_update.sh" "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh"
 
 if [[ ! -f "$INSTALL_DIR/config.json" ]]; then
   if [[ "$USE_SOURCE_CONFIG" -eq 1 && -f "$SCRIPT_DIR/config.json" ]]; then
@@ -121,6 +149,10 @@ if [[ ! -f "$INSTALL_DIR/config.json" ]]; then
 else
   echo "Zachowano istniejacy $INSTALL_DIR/config.json"
 fi
+
+SOURCE_VERSION="$(detect_source_version)"
+echo "$SOURCE_VERSION" > "$INSTALL_DIR/.installed_version"
+echo "Wersja zainstalowana: $SOURCE_VERSION"
 
 SERVICE_PATH="$USER_SYSTEMD_DIR/$SERVICE_NAME"
 cat > "$SERVICE_PATH" <<UNIT

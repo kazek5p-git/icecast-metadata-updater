@@ -29,13 +29,17 @@ mkdir -p "$OUT_DIR"
 
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/start_updater.sh" "$PKG_DIR/"
+cp "$SCRIPT_DIR/auto_update.sh" "$PKG_DIR/"
+cp "$SCRIPT_DIR/enable_auto_update.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/install.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/update.sh" "$PKG_DIR/"
+cp "$SCRIPT_DIR/auto_update.example.conf" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config.example.json" "$PKG_DIR/"
 cp "$SCRIPT_DIR/README.md" "$PKG_DIR/"
 cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
 
-chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
+chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/auto_update.sh" \
+  "$PKG_DIR/enable_auto_update.sh" "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
 
 ARCHIVE_PATH="$OUT_DIR/$PKG_NAME.tar.gz"
 (
@@ -45,11 +49,22 @@ ARCHIVE_PATH="$OUT_DIR/$PKG_NAME.tar.gz"
 
 CHECKSUM_PATH="$ARCHIVE_PATH.sha256"
 sha256sum "$ARCHIVE_PATH" > "$CHECKSUM_PATH"
+SHA_VALUE="$(awk '{print $1}' "$CHECKSUM_PATH")"
+
+LATEST_JSON_PATH="$OUT_DIR/latest.json"
+cat > "$LATEST_JSON_PATH" <<JSON
+{
+  "version": "$VERSION",
+  "tarball": "$(basename "$ARCHIVE_PATH")",
+  "sha256": "$SHA_VALUE"
+}
+JSON
 
 rm -rf "$STAGE_DIR"
 
 echo "Paczka gotowa: $ARCHIVE_PATH"
 echo "Suma SHA256: $CHECKSUM_PATH"
+echo "Manifest: $LATEST_JSON_PATH"
 echo "Instalacja u znajomego:"
 echo "  tar -xzf $(basename "$ARCHIVE_PATH")"
 echo "  cd $PKG_NAME"
