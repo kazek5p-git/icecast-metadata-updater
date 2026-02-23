@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/home/kazek/icecast-metadata-updater"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$PROJECT_DIR/logs"
-LOCK_FILE="/tmp/icecast_weather_updater.lock"
+LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/icecast_weather_updater_${USER}.lock"
 LOG_FILE="$LOG_DIR/updater.log"
 RESTART_DELAY_SECONDS=10
 
@@ -21,7 +21,7 @@ if ! /usr/bin/flock -n 9; then
 fi
 
 while true; do
-  if /usr/bin/python3 "$PROJECT_DIR/weather_metadata_updater.py" \
+  if "$(command -v python3)" "$PROJECT_DIR/weather_metadata_updater.py" \
     --config "$PROJECT_DIR/config.json" \
     >> "$LOG_FILE" 2>&1; then
     EXIT_CODE=0

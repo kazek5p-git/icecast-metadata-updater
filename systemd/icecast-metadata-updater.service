@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/kazek/icecast-metadata-updater
-ExecStart=/home/kazek/icecast-metadata-updater/start_updater.sh
+WorkingDirectory=%h/icecast-metadata-updater
+ExecStart=%h/icecast-metadata-updater/start_updater.sh
 Restart=always
 RestartSec=5
 
