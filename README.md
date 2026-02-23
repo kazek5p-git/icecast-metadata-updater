@@ -287,6 +287,8 @@ python3 weather_metadata_updater.py \
   `{city_ascii}` to nazwa miasta bez polskich znaków (np. `Łódź` -> `Lodz`).
   `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
   Jeśli ustawisz własne `title_template`, to ma ono wyższy priorytet niż `title_mode`.
+  Dla starszych konfiguracji ze starym domyślnym układem `classic` program automatycznie
+  migruje wyświetlanie do `outside` (bez ręcznej edycji configu).
 
 ## Uwaga dot. uprawnień
 

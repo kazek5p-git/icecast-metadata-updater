@@ -80,6 +80,8 @@ TITLE_TEMPLATE_PRESETS = {
     "classic": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
 }
 
+LEGACY_CLASSIC_TEMPLATE = "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}"
+
 
 DEFAULT_CONFIG = {
     "icecast": {
@@ -301,12 +303,21 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
         title_template = TITLE_TEMPLATE_PRESETS[title_mode]
     elif isinstance(title_template_cfg, str) and title_template_cfg.strip():
         title_template = title_template_cfg.strip()
-        for preset_name, preset_template in TITLE_TEMPLATE_PRESETS.items():
-            if title_template == preset_template:
-                effective_title_mode = preset_name
-                break
+        if title_template == LEGACY_CLASSIC_TEMPLATE:
+            title_template = TITLE_TEMPLATE_PRESETS["outside"]
+            effective_title_mode = "outside"
+            log(
+                "Wykryto stary domyslny title_template (classic). "
+                "Automatycznie przechodze na title_mode=outside. "
+                "Aby wrocic, ustaw title_mode=classic."
+            )
         else:
-            effective_title_mode = "custom"
+            for preset_name, preset_template in TITLE_TEMPLATE_PRESETS.items():
+                if title_template == preset_template:
+                    effective_title_mode = preset_name
+                    break
+            else:
+                effective_title_mode = "custom"
     else:
         title_template = TITLE_TEMPLATE_PRESETS[title_mode]
 
