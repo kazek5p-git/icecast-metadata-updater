@@ -281,6 +281,17 @@ write_index() {
       <div class="icon-row" aria-hidden="true">
         <div class="icon-chip">
           <svg viewBox="0 0 64 64" role="presentation">
+            <defs>
+              <linearGradient id="cloudFill" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#e6f2ff"/>
+                <stop offset="100%" stop-color="#bcd7ff"/>
+              </linearGradient>
+            </defs>
+            <path d="M16 42h31a9 9 0 0 0 0-18 13 13 0 0 0-24-4 9 9 0 0 0-7 22z" fill="url(#cloudFill)" stroke="#6aa9ff" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="icon-chip">
+          <svg viewBox="0 0 64 64" role="presentation">
             <circle cx="32" cy="32" r="12" fill="#ffbe3d"/>
             <g stroke="#ff9d00" stroke-width="4" stroke-linecap="round">
               <line x1="32" y1="6" x2="32" y2="14"/>
