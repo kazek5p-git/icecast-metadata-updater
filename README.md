@@ -137,7 +137,7 @@ Skrypt utworzy pliki w `dist/`:
 - `icecast-metadata-updater-<wersja>.tar.gz`
 - `icecast-metadata-updater-<wersja>.tar.gz.sha256`
 - `CHANGELOG.md` (opis zmian z historii commitow)
-- `latest.json` (manifest dla auto-update)
+- `latest.json` (manifest dla auto-update, zawiera tez `changes` z lista zmian)
 - `install_online.sh` (instalator online)
 - `doctor.sh` (skrypt diagnostyczny)
 
@@ -212,7 +212,7 @@ cd ~/icecast-metadata-updater
 
 Efekt:
 
-- `latest.json` wskazuje najnowszą paczkę
+- `latest.json` wskazuje najnowszą paczkę i zawiera pole `changes`
 - `CHANGELOG.md` pokazuje ostatnie zmiany (historia commitow)
 - znajomy aktualizuje się automatycznie przez swój timer `systemd --user`
 - Ty utrzymujesz aktualizacje przez zwykłe pliki statyczne na WWW (bez ingerencji w Icecast)

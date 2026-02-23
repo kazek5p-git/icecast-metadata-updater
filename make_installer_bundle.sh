@@ -41,6 +41,34 @@ trim_trailing_slash() {
   echo "$value"
 }
 
+collect_manifest_changes_json() {
+  local max_entries=20
+  local output=""
+
+  if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if output="$(
+      git -C "$SCRIPT_DIR" log --max-count "$max_entries" --date=short --pretty=format:'%h%x1f%ad%x1f%s' \
+        | python3 -c 'import json,sys
+items = []
+for raw in sys.stdin:
+    line = raw.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\x1f", 2)
+    if len(parts) != 3:
+        continue
+    short_hash, commit_date, subject = parts
+    items.append(f"{commit_date} {short_hash} - {subject}")
+print(json.dumps(items, ensure_ascii=False))'
+    )"; then
+      echo "$output"
+      return
+    fi
+  fi
+
+  echo "[]"
+}
+
 write_manifest() {
   local path="$1"
   local version="$2"
@@ -51,6 +79,7 @@ write_manifest() {
   local changelog_name="$7"
   local install_script_name="$8"
   local doctor_script_name="$9"
+  local manifest_changes_json="${10:-[]}"
 
   {
     echo "{"
@@ -59,6 +88,7 @@ write_manifest() {
     echo "  \"changelog\": \"$changelog_name\","
     echo "  \"install_script\": \"$install_script_name\","
     echo "  \"doctor_script\": \"$doctor_script_name\","
+    echo "  \"changes\": $manifest_changes_json,"
     if [[ -n "$site_url" ]]; then
       echo "  \"tarball_url\": \"$site_url/$archive_name\","
       echo "  \"sha256_url\": \"$site_url/$archive_name.sha256\","
@@ -468,7 +498,8 @@ SHA_VALUE="$(awk '{print $1}' "$CHECKSUM_PATH")"
 
 LATEST_JSON_PATH="$OUT_DIR/latest.json"
 ARCHIVE_NAME="$(basename "$ARCHIVE_PATH")"
-write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME"
+MANIFEST_CHANGES_JSON="$(collect_manifest_changes_json)"
+write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME" "$MANIFEST_CHANGES_JSON"
 
 if [[ -n "$PUBLISH_DIR" ]]; then
   mkdir -p "$PUBLISH_DIR"
