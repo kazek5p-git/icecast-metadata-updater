@@ -83,7 +83,7 @@ TITLE_TEMPLATE_PRESETS = {
     ),
     "classic": (
         "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
-        "wiatr {wind} km/h, {condition}{precip_clause} (Outside {city})"
+        "wiatr {wind} km/h, {condition}{precip_clause}"
     ),
 }
 
