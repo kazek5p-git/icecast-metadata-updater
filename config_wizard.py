@@ -24,7 +24,10 @@ TITLE_TEMPLATE_PRESETS = {
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
         "{condition}{precip_clause}"
     ),
-    "classic": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
+    "classic": (
+        "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
+        "wiatr {wind} km/h, {condition}{precip_clause} (Outside {city})"
+    ),
 }
 
 
@@ -376,7 +379,7 @@ def main() -> int:
         "Tryb tytułu metadanych:",
         [
             ("outside", "outside from Lodz, quality 320kbps mp3 ..."),
-            ("classic", "Łódź: 6°C, odczuwalna 4°C, wiatr ..."),
+            ("classic", "Łódź: Temperatura: 6°C, odczuwalna 4°C, wiatr ... (Outside Łódź)"),
             ("weather", "temperatura: 6°C, odczuwalna 4°C, wiatr ..."),
         ],
         default_mode,

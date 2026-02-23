@@ -81,7 +81,10 @@ TITLE_TEMPLATE_PRESETS = {
         "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
         "{condition}{precip_clause}"
     ),
-    "classic": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
+    "classic": (
+        "{city}: Temperatura: {temp}°C, odczuwalna {feels}°C, "
+        "wiatr {wind} km/h, {condition}{precip_clause} (Outside {city})"
+    ),
 }
 
 LEGACY_CLASSIC_TEMPLATE = "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}"
