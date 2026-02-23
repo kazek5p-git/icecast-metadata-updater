@@ -20,6 +20,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `weather_metadata_updater.py` - główny skrypt
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `config.example.json` - przykładowa konfiguracja
+- `systemd/icecast-metadata-updater.service` - wzór usługi użytkownika systemd
 
 ## Uruchomienie
 
@@ -35,16 +36,22 @@ Tryb ciągły (domyślnie co 120 s):
 python3 weather_metadata_updater.py
 ```
 
-Autostart po restarcie systemu (użytkownik `kazek`) jest realizowany przez `crontab`:
+Autostart po restarcie systemu (użytkownik `kazek`) realizuje usługa `systemd --user`:
 
 ```bash
-@reboot /bin/bash -lc "/home/kazek/icecast-metadata-updater/start_updater.sh"
+systemctl --user enable --now icecast-metadata-updater.service
 ```
 
 Log działania:
 
 - `logs/updater.log`
 - przy awarii pojawi się wpis `WATCHDOG: ... restart in 10s`
+
+Status usługi:
+
+```bash
+systemctl --user status icecast-metadata-updater.service
+```
 
 ## Konfiguracja
 

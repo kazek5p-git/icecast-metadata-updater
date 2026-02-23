@@ -1,0 +1,14 @@
+[Unit]
+Description=Aktualizacja metadanych Icecast na podstawie pogody
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kazek/icecast-metadata-updater
+ExecStart=/home/kazek/icecast-metadata-updater/start_updater.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
