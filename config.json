@@ -1,5 +1,6 @@
 {
   "update": {
     "interval_seconds": 600
-  }
+  },
+  "title_template": "(outside from {city_ascii}, quality 320kbps mp3 temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause})"
 }

@@ -279,9 +279,10 @@ python3 weather_metadata_updater.py \
 - `--dry-run` - nie wysyła update, tylko loguje
 - `--mount-prefix outside_` - prefiks mountów
 - `--interval-seconds 120` - interwał odświeżania
-- `--title-template "{city}: {temp}°C, ..."` - format tytułu
-  Dostępne pola: `{city}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
+- `--title-template "(outside from {city_ascii}, quality 320kbps mp3 temperatura: {temp}°C, ...)"` - format tytułu
+  Dostępne pola: `{city}`, `{city_ascii}`, `{temp}`, `{feels}`, `{wind}`, `{condition}`, `{precip}`, `{precip_clause}`,
   `{precipitation_mm}`, `{rain_mm}`, `{showers_mm}`, `{snowfall_cm}`, `{mount}`.
+  `{city_ascii}` to nazwa miasta bez polskich znaków (np. `Łódź` -> `Lodz`).
   `{precip}` jest puste przy braku opadów, a `{precip_clause}` to gotowy fragment z przecinkiem.
 
 ## Uwaga dot. uprawnień

@@ -11,6 +11,7 @@ import json
 import re
 import sys
 import time
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -94,7 +95,11 @@ DEFAULT_CONFIG = {
         "interval_seconds": 120,
         "dry_run": False,
     },
-    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
+    "title_template": (
+        "(outside from {city_ascii}, quality 320kbps mp3 "
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "{condition}{precip_clause})"
+    ),
 }
 
 
@@ -597,9 +602,14 @@ def build_title(template: str, city: str, weather: dict[str, Any], mount_name: s
 
     precip = precipitation_text(weather)
     precip_clause = f", {precip}" if precip else ""
+    city_latin = city.translate(str.maketrans({"Ł": "L", "ł": "l"}))
+    city_ascii = unicodedata.normalize("NFKD", city_latin).encode("ascii", "ignore").decode("ascii")
+    if not city_ascii:
+        city_ascii = city
 
     return template.format(
         city=city,
+        city_ascii=city_ascii,
         temp=temp,
         feels=feels,
         wind=wind,

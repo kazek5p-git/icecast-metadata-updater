@@ -38,7 +38,11 @@ DEFAULT_CONFIG = {
         "interval_seconds": 600,
         "dry_run": False,
     },
-    "title_template": "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}",
+    "title_template": (
+        "(outside from {city_ascii}, quality 320kbps mp3 "
+        "temperatura: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, "
+        "{condition}{precip_clause})"
+    ),
 }
 
 
