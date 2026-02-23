@@ -102,11 +102,14 @@ write_index() {
   local site_url="$5"
   local changelog_name="$6"
   local manifest_url_hint
+  local archive_url_hint
 
   if [[ -n "$site_url" ]]; then
     manifest_url_hint="$site_url/latest.json"
+    archive_url_hint="$site_url/$archive_name"
   else
     manifest_url_hint="<TWOJ_URL>/latest.json"
+    archive_url_hint="$archive_name"
   fi
 
   cat > "$path" <<EOF
@@ -154,11 +157,23 @@ write_index() {
       border-radius: 12px;
       background: #f8fbff;
     }
+    .warn {
+      margin: 18px 0;
+      padding: 14px;
+      border: 1px solid #f3d7a8;
+      border-radius: 12px;
+      background: #fff8ea;
+      color: #5c4320;
+    }
     .links {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 8px;
+    }
+    ol {
+      margin: 8px 0 12px;
+      padding-left: 22px;
     }
     a.btn {
       text-decoration: none;
@@ -200,9 +215,21 @@ write_index() {
       </div>
     </section>
     <p>Opis zmian znajduje sie w pliku <code>$changelog_name</code>.</p>
+    <section class="warn">
+      <p><strong>Wazne:</strong> samo pobranie paczki <code>.tar.gz</code> nie uruchamia programu.</p>
+      <p>Potrzebna jest instalacja z paczki (dziala takze od zera, bez wczesniejszej instalacji).</p>
+    </section>
+    <p><strong>Instalacja od zera (znajomy):</strong></p>
+    <ol>
+      <li>Pobierz paczke: <code>$archive_url_hint</code></li>
+      <li>Rozpakuj: <code>tar -xzf $archive_name</code></li>
+      <li>Wejdz do katalogu i uruchom: <code>./install.sh</code></li>
+      <li>Opcjonalnie wlacz auto-update z manifestu ponizej</li>
+    </ol>
     <p>Przyklad wlaczenia automatycznej aktualizacji u znajomego:</p>
     <pre><code>cd ~/icecast-metadata-updater
 ./enable_auto_update.sh --manifest-url "$manifest_url_hint" --run-now</code></pre>
+    <p>Wymagania: Linux, python3, systemd --user.</p>
   </main>
 </body>
 </html>
