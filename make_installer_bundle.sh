@@ -224,6 +224,8 @@ write_index() {
       <li>Pobierz paczkę: <code>$archive_url_hint</code></li>
       <li>Rozpakuj: <code>tar -xzf $archive_name</code></li>
       <li>Wejdź do katalogu i uruchom: <code>./install.sh</code></li>
+      <li>Uruchom kreator konfiguracji: <code>python3 ~/icecast-metadata-updater/config_wizard.py --config ~/icecast-metadata-updater/config.json</code></li>
+      <li>Sprawdź konfigurację: <code>python3 ~/icecast-metadata-updater/weather_metadata_updater.py --once --dry-run</code></li>
       <li>Opcjonalnie włącz auto-update z manifestu poniżej</li>
     </ol>
     <p>Przykład włączenia automatycznej aktualizacji u znajomego:</p>
@@ -295,6 +297,7 @@ mkdir -p "$OUT_DIR"
 write_changelog "$CHANGELOG_PATH" "$VERSION" "$GENERATED_AT_UTC"
 
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
+cp "$SCRIPT_DIR/config_wizard.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/start_updater.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/auto_update.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/enable_auto_update.sh" "$PKG_DIR/"
@@ -307,7 +310,8 @@ cp "$CHANGELOG_PATH" "$PKG_DIR/$CHANGELOG_NAME"
 cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
 
 chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/auto_update.sh" \
-  "$PKG_DIR/enable_auto_update.sh" "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
+  "$PKG_DIR/config_wizard.py" "$PKG_DIR/enable_auto_update.sh" \
+  "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
 
 ARCHIVE_PATH="$OUT_DIR/$PKG_NAME.tar.gz"
 (
@@ -357,3 +361,4 @@ echo "Instalacja u znajomego:"
 echo "  tar -xzf $ARCHIVE_NAME"
 echo "  cd $PKG_NAME"
 echo "  ./install.sh"
+echo "  python3 ~/icecast-metadata-updater/config_wizard.py --config ~/icecast-metadata-updater/config.json"

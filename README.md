@@ -20,6 +20,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 ## Pliki
 
 - `weather_metadata_updater.py` - główny skrypt
+- `config_wizard.py` - interaktywny kreator konfiguracji `config.json`
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
 - `update.sh` - aktualizacja programu i restart usługi
@@ -43,6 +44,7 @@ Szybka instalacja:
 git clone <URL_REPO> icecast-metadata-updater
 cd icecast-metadata-updater
 ./install.sh
+python3 ~/icecast-metadata-updater/config_wizard.py --config ~/icecast-metadata-updater/config.json
 ```
 
 Domyślnie instalator przy pierwszym uruchomieniu tworzy `config.json` z `config.example.json`
@@ -58,6 +60,23 @@ Jeśli świadomie chcesz skopiować lokalny `config.json` obok instalatora:
 
 ```bash
 ./install.sh --use-source-config
+```
+
+## Kreator konfiguracji
+
+Kreator prowadzi krok po kroku przez:
+
+- adres Icecast (lokalny lub zdalny),
+- loginy i hasła,
+- interwał odświeżania,
+- opcjonalne mapowania `city_overrides`,
+- test połączenia do `status-json.xsl`.
+
+Uruchomienie:
+
+```bash
+cd ~/icecast-metadata-updater
+python3 config_wizard.py --config config.json
 ```
 
 ## Paczka dla znajomego
@@ -92,6 +111,7 @@ Aktualizacja u znajomego po wypakowaniu nowej paczki:
 
 ```bash
 ./update.sh --install-dir "$HOME/icecast-metadata-updater"
+python3 ~/icecast-metadata-updater/config_wizard.py --config ~/icecast-metadata-updater/config.json
 ```
 
 Aktualizacja u znajomego przy instalacji z Git:
