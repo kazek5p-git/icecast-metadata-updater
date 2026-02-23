@@ -621,7 +621,7 @@ def air_quality_text(air_quality: dict[str, Any] | None) -> tuple[str, str]:
         return "", ""
 
     label = air_quality_description(aqi_value)
-    return f"powietrze: {label} (AQI {aqi_value})", str(aqi_value)
+    return f"jakość powietrza: {label} (AQI {aqi_value})", str(aqi_value)
 
 
 def pressure_text(weather: dict[str, Any]) -> tuple[str, str]:
