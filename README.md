@@ -12,7 +12,8 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 1. Pobiera aktywne źródła z `status-json.xsl`.
 2. Filtruje mounty zaczynające się od `outside_`.
 3. Pobiera geolokalizację miasta i aktualną pogodę z Open-Meteo.
-   Dane obejmują m.in. temperaturę, wiatr oraz opad (`precipitation/rain/showers/snowfall`).
+   Dane obejmują m.in. temperaturę, wiatr oraz opad (`precipitation/rain/showers/snowfall`),
+   w tym opady mieszane (`deszcz ze śniegiem`).
 4. Wysyła update przez Icecast: `/admin/metadata?mode=updinfo`.
    Na starszych instalacjach, gdy trzeba, automatycznie przechodzi na `/admin/metadata.xsl`.
 

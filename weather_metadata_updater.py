@@ -484,8 +484,8 @@ def weather_description(code: int, is_day: int | None = None) -> str:
 
 
 def rain_intensity_label(rain_mm: float) -> str:
-    if rain_mm < 0.1:
-        return "bez deszczu"
+    if rain_mm < 0.05:
+        return "śladowy deszcz"
     if rain_mm < 0.5:
         return "bardzo lekki deszcz"
     if rain_mm < 1.5:
@@ -498,8 +498,8 @@ def rain_intensity_label(rain_mm: float) -> str:
 
 
 def snowfall_intensity_label(snow_cm: float) -> str:
-    if snow_cm < 0.1:
-        return "bez opadów śniegu"
+    if snow_cm < 0.05:
+        return "śladowy śnieg"
     if snow_cm < 0.5:
         return "lekki śnieg"
     if snow_cm < 2.0:
@@ -507,20 +507,64 @@ def snowfall_intensity_label(snow_cm: float) -> str:
     return "silny śnieg"
 
 
+def mixed_precipitation_label(rain_mm: float, snow_cm: float) -> str:
+    rain_score = 0
+    if rain_mm >= 0.5:
+        rain_score = 1
+    if rain_mm >= 1.5:
+        rain_score = 2
+    if rain_mm >= 4.0:
+        rain_score = 3
+
+    snow_score = 0
+    if snow_cm >= 0.5:
+        snow_score = 1
+    if snow_cm >= 1.5:
+        snow_score = 2
+    if snow_cm >= 3.0:
+        snow_score = 3
+
+    score = max(rain_score, snow_score)
+    labels = (
+        "lekki deszcz ze śniegiem",
+        "umiarkowany deszcz ze śniegiem",
+        "silny deszcz ze śniegiem",
+        "bardzo silny deszcz ze śniegiem",
+    )
+    return labels[score]
+
+
+def format_amount(value: float, unit: str) -> str:
+    if value < 0.1:
+        return f"{value:.2f} {unit}"
+    return f"{value:.1f} {unit}"
+
+
 def precipitation_text(weather: dict[str, Any]) -> str:
     precipitation = float(weather.get("precipitation", 0.0) or 0.0)
     rain = float(weather.get("rain", 0.0) or 0.0)
     showers = float(weather.get("showers", 0.0) or 0.0)
     snowfall = float(weather.get("snowfall", 0.0) or 0.0)
+    rain_total = rain + showers
 
-    if precipitation < 0.1 and rain < 0.1 and showers < 0.1 and snowfall < 0.1:
+    has_rain = rain_total >= 0.03
+    has_snow = snowfall >= 0.03
+    has_any_precip = precipitation >= 0.03 or has_rain or has_snow
+
+    if not has_any_precip:
         return "opad: brak"
 
-    if snowfall >= max(rain + showers, 0.1):
-        return f"opad: {snowfall_intensity_label(snowfall)} ({snowfall:.1f} cm)"
+    if has_rain and has_snow:
+        label = mixed_precipitation_label(rain_total, snowfall)
+        return (
+            f"opad: {label} "
+            f"(deszcz {format_amount(rain_total, 'mm')}, śnieg {format_amount(snowfall, 'cm')})"
+        )
 
-    rain_total = rain + showers
-    return f"opad: {rain_intensity_label(rain_total)} ({rain_total:.1f} mm)"
+    if has_snow:
+        return f"opad: {snowfall_intensity_label(snowfall)} ({format_amount(snowfall, 'cm')})"
+
+    return f"opad: {rain_intensity_label(rain_total)} ({format_amount(rain_total, 'mm')})"
 
 
 def current_weather(point: GeoPoint, cfg: RuntimeConfig) -> dict[str, Any]:
