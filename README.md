@@ -26,7 +26,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `auto_update.sh` - silnik automatycznej aktualizacji z manifestu
 - `enable_auto_update.sh` - włączenie/wyłączenie auto-update (timer systemd użytkownika)
 - `auto_update.example.conf` - przykład konfiguracji auto-update
-- `make_installer_bundle.sh` - tworzy paczkę `.tar.gz` do przekazania znajomemu
+- `make_installer_bundle.sh` - tworzy paczkę `.tar.gz`, manifest `latest.json` i opcjonalnie publikuje je do katalogu WWW
 - `config.example.json` - przykładowa konfiguracja
 - `systemd/icecast-metadata-updater.service` - wzór usługi użytkownika systemd
 
@@ -68,11 +68,24 @@ Tworzenie paczki z najnowszą wersją:
 ./make_installer_bundle.sh
 ```
 
+Tworzenie i od razu publikacja pod stronę (np. `kazpar.pl`):
+
+```bash
+./make_installer_bundle.sh \
+  --publish-dir "$HOME/www/icecast-updater" \
+  --site-url "https://kazpar.pl/icecast-updater" \
+  --clean-publish
+```
+
 Skrypt utworzy pliki w `dist/`:
 
 - `icecast-metadata-updater-<wersja>.tar.gz`
 - `icecast-metadata-updater-<wersja>.tar.gz.sha256`
 - `latest.json` (manifest dla auto-update)
+
+Przy publikacji do WWW dodatkowo tworzy:
+
+- `index.html` (czytelna strona aktualizacji)
 
 Aktualizacja u znajomego po wypakowaniu nowej paczki:
 
@@ -93,13 +106,16 @@ Po stronie autora (u Ciebie):
 1. Zbuduj paczkę:
 
 ```bash
-./make_installer_bundle.sh
+./make_installer_bundle.sh \
+  --publish-dir "$HOME/www/icecast-updater" \
+  --site-url "https://kazpar.pl/icecast-updater" \
+  --clean-publish
 ```
 
-2. Wrzuć na serwer WWW (np. `kazpar.pl`) pliki z `dist/`:
+2. Pliki są gotowe pod adresem:
 
-- `icecast-metadata-updater-<wersja>.tar.gz`
-- `latest.json`
+- `https://kazpar.pl/icecast-updater/`
+- `https://kazpar.pl/icecast-updater/latest.json`
 
 Po stronie znajomego (jednorazowo):
 
@@ -119,6 +135,24 @@ Wyłączenie auto-update:
 ```bash
 ./enable_auto_update.sh --disable
 ```
+
+## Integracja z kazpar.pl (szybki workflow)
+
+Jednym poleceniem robisz nową wersję i publikujesz ją na stronie:
+
+```bash
+cd ~/icecast-metadata-updater
+./make_installer_bundle.sh \
+  --publish-dir "$HOME/www/icecast-updater" \
+  --site-url "https://kazpar.pl/icecast-updater" \
+  --clean-publish
+```
+
+Efekt:
+
+- `latest.json` wskazuje najnowszą paczkę
+- znajomy aktualizuje się automatycznie przez swój timer `systemd --user`
+- Ty utrzymujesz aktualizacje przez zwykłe pliki statyczne na WWW (bez ingerencji w Icecast)
 
 ## Uruchomienie
 
