@@ -22,6 +22,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `weather_metadata_updater.py` - główny skrypt
 - `config_wizard.py` - interaktywny kreator konfiguracji `config.json`
 - `install_online.sh` - instalator online (pobranie + weryfikacja + instalacja z `latest.json`)
+- `doctor.sh` - szybka diagnostyka konfiguracji, polaczenia i uslug
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
 - `update.sh` - aktualizacja programu i restart usługi
@@ -96,6 +97,23 @@ Instalator online:
 - uruchamia `install.sh`,
 - opcjonalnie uruchamia kreator i auto-update.
 
+## Diagnostyka
+
+Szybki test konfiguracji i polaczenia z Icecast:
+
+```bash
+~/icecast-metadata-updater/doctor.sh --install-dir ~/icecast-metadata-updater --config ~/icecast-metadata-updater/config.json --run-dry-run
+```
+
+Skrypt sprawdza:
+
+- konfiguracje (`base_url`, hasla, prefiks mountow),
+- dostep do `status-json.xsl`,
+- endpoint metadata (`/admin/metadata` lub `/admin/metadata.xsl`),
+- status uslugi i timera `systemd --user`,
+- log `logs/updater.log`,
+- opcjonalnie test `--once --dry-run`.
+
 ## Paczka dla znajomego
 
 Tworzenie paczki z najnowszą wersją:
@@ -120,6 +138,7 @@ Skrypt utworzy pliki w `dist/`:
 - `CHANGELOG.md` (opis zmian z historii commitow)
 - `latest.json` (manifest dla auto-update)
 - `install_online.sh` (instalator online)
+- `doctor.sh` (skrypt diagnostyczny)
 
 Przy publikacji do WWW dodatkowo tworzy:
 
@@ -156,6 +175,7 @@ Po stronie autora (u Ciebie):
 - `https://kazpar.pl/icecast-updater/`
 - `https://kazpar.pl/icecast-updater/latest.json`
 - `https://kazpar.pl/icecast-updater/install_online.sh`
+- `https://kazpar.pl/icecast-updater/doctor.sh`
 - `https://kazpar.pl/icecast-updater/CHANGELOG.md`
 
 Po stronie znajomego (jednorazowo):

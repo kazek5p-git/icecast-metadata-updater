@@ -50,6 +50,7 @@ write_manifest() {
   local site_url="$6"
   local changelog_name="$7"
   local install_script_name="$8"
+  local doctor_script_name="$9"
 
   {
     echo "{"
@@ -57,11 +58,13 @@ write_manifest() {
     echo "  \"tarball\": \"$archive_name\","
     echo "  \"changelog\": \"$changelog_name\","
     echo "  \"install_script\": \"$install_script_name\","
+    echo "  \"doctor_script\": \"$doctor_script_name\","
     if [[ -n "$site_url" ]]; then
       echo "  \"tarball_url\": \"$site_url/$archive_name\","
       echo "  \"sha256_url\": \"$site_url/$archive_name.sha256\","
       echo "  \"changelog_url\": \"$site_url/$changelog_name\","
       echo "  \"install_script_url\": \"$site_url/$install_script_name\","
+      echo "  \"doctor_script_url\": \"$site_url/$doctor_script_name\","
     fi
     echo "  \"sha256\": \"$sha256\","
     echo "  \"generated_at_utc\": \"$generated_at\""
@@ -105,19 +108,23 @@ write_index() {
   local site_url="$5"
   local changelog_name="$6"
   local install_script_name="$7"
+  local doctor_script_name="$8"
   local manifest_url_hint
   local archive_url_hint
   local install_script_url_hint
+  local doctor_script_url_hint
   local online_cmd
 
   if [[ -n "$site_url" ]]; then
     manifest_url_hint="$site_url/latest.json"
     archive_url_hint="$site_url/$archive_name"
     install_script_url_hint="$site_url/$install_script_name"
+    doctor_script_url_hint="$site_url/$doctor_script_name"
   else
     manifest_url_hint="<TWOJ_URL>/latest.json"
     archive_url_hint="$archive_name"
     install_script_url_hint="<TWOJ_URL>/$install_script_name"
+    doctor_script_url_hint="<TWOJ_URL>/$doctor_script_name"
   fi
   online_cmd="curl -fsSL $install_script_url_hint | bash"
 
@@ -333,6 +340,7 @@ write_index() {
       <p><strong>Wygenerowano (UTC):</strong> $generated_at</p>
       <div class="links">
         <a class="btn alt" href="$install_script_name">Instalator online</a>
+        <a class="btn alt" href="$doctor_script_name">Skrypt doctor.sh</a>
         <a class="btn" href="$archive_name">Pobierz paczkę</a>
         <a class="btn alt" href="$archive_name.sha256">Suma SHA256</a>
         <a class="btn alt" href="latest.json">Manifest latest.json</a>
@@ -358,6 +366,9 @@ write_index() {
     <p>Przykład włączenia automatycznej aktualizacji:</p>
     <pre><code>cd ~/icecast-metadata-updater
 ./enable_auto_update.sh --manifest-url "$manifest_url_hint" --run-now</code></pre>
+    <p>Szybka diagnostyka instalacji:</p>
+    <pre><code>~/icecast-metadata-updater/doctor.sh --install-dir ~/icecast-metadata-updater --config ~/icecast-metadata-updater/config.json --run-dry-run</code></pre>
+    <p>Alternatywnie pobierz sam skrypt diagnostyczny: <code>$doctor_script_url_hint</code></p>
     <p>Wymagania: Linux, python3, systemd --user.</p>
   </main>
 </body>
@@ -419,6 +430,7 @@ GENERATED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 CHANGELOG_NAME="CHANGELOG.md"
 CHANGELOG_PATH="$OUT_DIR/$CHANGELOG_NAME"
 INSTALL_SCRIPT_NAME="install_online.sh"
+DOCTOR_SCRIPT_NAME="doctor.sh"
 
 mkdir -p "$PKG_DIR/systemd"
 mkdir -p "$OUT_DIR"
@@ -427,6 +439,7 @@ write_changelog "$CHANGELOG_PATH" "$VERSION" "$GENERATED_AT_UTC"
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config_wizard.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/install_online.sh" "$PKG_DIR/"
+cp "$SCRIPT_DIR/doctor.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/start_updater.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/auto_update.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/enable_auto_update.sh" "$PKG_DIR/"
@@ -440,7 +453,7 @@ cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
 
 chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/auto_update.sh" \
   "$PKG_DIR/config_wizard.py" "$PKG_DIR/install_online.sh" \
-  "$PKG_DIR/enable_auto_update.sh" \
+  "$PKG_DIR/doctor.sh" "$PKG_DIR/enable_auto_update.sh" \
   "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
 
 ARCHIVE_PATH="$OUT_DIR/$PKG_NAME.tar.gz"
@@ -455,7 +468,7 @@ SHA_VALUE="$(awk '{print $1}' "$CHECKSUM_PATH")"
 
 LATEST_JSON_PATH="$OUT_DIR/latest.json"
 ARCHIVE_NAME="$(basename "$ARCHIVE_PATH")"
-write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME"
+write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME"
 
 if [[ -n "$PUBLISH_DIR" ]]; then
   mkdir -p "$PUBLISH_DIR"
@@ -470,8 +483,9 @@ if [[ -n "$PUBLISH_DIR" ]]; then
   cp -f "$CHECKSUM_PATH" "$PUBLISH_DIR/"
   cp -f "$CHANGELOG_PATH" "$PUBLISH_DIR/$CHANGELOG_NAME"
   cp -f "$SCRIPT_DIR/install_online.sh" "$PUBLISH_DIR/$INSTALL_SCRIPT_NAME"
+  cp -f "$SCRIPT_DIR/doctor.sh" "$PUBLISH_DIR/$DOCTOR_SCRIPT_NAME"
   cp -f "$LATEST_JSON_PATH" "$PUBLISH_DIR/latest.json"
-  write_index "$PUBLISH_DIR/index.html" "$VERSION" "$GENERATED_AT_UTC" "$ARCHIVE_NAME" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME"
+  write_index "$PUBLISH_DIR/index.html" "$VERSION" "$GENERATED_AT_UTC" "$ARCHIVE_NAME" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME"
 fi
 
 rm -rf "$STAGE_DIR"
@@ -486,6 +500,7 @@ if [[ -n "$PUBLISH_DIR" ]]; then
     echo "URL manifestu: $SITE_URL/latest.json"
     echo "URL strony: $SITE_URL/"
     echo "URL instalatora online: $SITE_URL/$INSTALL_SCRIPT_NAME"
+    echo "URL diagnostyki: $SITE_URL/$DOCTOR_SCRIPT_NAME"
     echo "URL changelogu: $SITE_URL/$CHANGELOG_NAME"
   fi
 fi
@@ -494,3 +509,4 @@ echo "  tar -xzf $ARCHIVE_NAME"
 echo "  cd $PKG_NAME"
 echo "  ./install.sh"
 echo "  python3 ~/icecast-metadata-updater/config_wizard.py --config ~/icecast-metadata-updater/config.json"
+echo "  ~/icecast-metadata-updater/doctor.sh --install-dir ~/icecast-metadata-updater --config ~/icecast-metadata-updater/config.json --run-dry-run"

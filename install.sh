@@ -106,6 +106,7 @@ fi
 for needed in \
   "$SCRIPT_DIR/weather_metadata_updater.py" \
   "$SCRIPT_DIR/config_wizard.py" \
+  "$SCRIPT_DIR/doctor.sh" \
   "$SCRIPT_DIR/start_updater.sh" \
   "$SCRIPT_DIR/auto_update.sh" \
   "$SCRIPT_DIR/auto_update.example.conf" \
@@ -123,6 +124,7 @@ mkdir -p "$INSTALL_DIR" "$INSTALL_DIR/systemd" "$INSTALL_DIR/logs" "$USER_SYSTEM
 
 copy_file "$SCRIPT_DIR/weather_metadata_updater.py" "$INSTALL_DIR/weather_metadata_updater.py"
 copy_file "$SCRIPT_DIR/config_wizard.py" "$INSTALL_DIR/config_wizard.py"
+copy_file "$SCRIPT_DIR/doctor.sh" "$INSTALL_DIR/doctor.sh"
 copy_file "$SCRIPT_DIR/start_updater.sh" "$INSTALL_DIR/start_updater.sh"
 copy_file "$SCRIPT_DIR/auto_update.sh" "$INSTALL_DIR/auto_update.sh"
 copy_file "$SCRIPT_DIR/auto_update.example.conf" "$INSTALL_DIR/auto_update.example.conf"
@@ -142,7 +144,7 @@ if [[ -f "$SCRIPT_DIR/make_installer_bundle.sh" ]]; then
 fi
 
 chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/config_wizard.py" \
-  "$INSTALL_DIR/auto_update.sh" "$INSTALL_DIR/enable_auto_update.sh" \
+  "$INSTALL_DIR/doctor.sh" "$INSTALL_DIR/auto_update.sh" "$INSTALL_DIR/enable_auto_update.sh" \
   "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh"
 
 if [[ ! -f "$INSTALL_DIR/config.json" ]]; then
@@ -200,6 +202,7 @@ echo "Status: $(systemctl --user is-active "$SERVICE_NAME")"
 echo "Autostart: $(systemctl --user is-enabled "$SERVICE_NAME")"
 echo "Log: $INSTALL_DIR/logs/updater.log"
 echo "Kreator konfiguracji: python3 $INSTALL_DIR/config_wizard.py --config $INSTALL_DIR/config.json"
+echo "Diagnostyka: $INSTALL_DIR/doctor.sh --install-dir $INSTALL_DIR --config $INSTALL_DIR/config.json"
 echo "Instalator online: $INSTALL_DIR/install_online.sh"
 
 if [[ "$LINGER_STATE" != "yes" ]]; then
