@@ -51,6 +51,31 @@ WMO_WEATHER = {
     99: "silna burza z gradem",
 }
 
+PRECIPITATION_WEATHER_CODES = {
+    51,
+    53,
+    55,
+    56,
+    57,
+    61,
+    63,
+    65,
+    66,
+    67,
+    71,
+    73,
+    75,
+    77,
+    80,
+    81,
+    82,
+    85,
+    86,
+    95,
+    96,
+    99,
+}
+
 POLISH_CITY_ALIASES = {
     "bialystok": "Białystok",
     "bydgoszcz": "Bydgoszcz",
@@ -626,6 +651,7 @@ def format_amount(value: float, unit: str) -> str:
 
 
 def precipitation_text(weather: dict[str, Any]) -> str:
+    code = int(weather.get("weather_code", -1) or -1)
     precipitation = float(weather.get("precipitation", 0.0) or 0.0)
     rain = float(weather.get("rain", 0.0) or 0.0)
     showers = float(weather.get("showers", 0.0) or 0.0)
@@ -645,6 +671,11 @@ def precipitation_text(weather: dict[str, Any]) -> str:
             f"opad: {label} "
             f"(deszcz {format_amount(rain_total, 'mm')}, śnieg {format_amount(snowfall, 'cm')})"
         )
+
+    # Gdy warunek pogody juz opisuje opad (np. mżawka/deszcz/snieg),
+    # nie doklejamy drugiego, bardzo podobnego opisu "opad: ...".
+    if code in PRECIPITATION_WEATHER_CODES:
+        return ""
 
     if has_snow:
         return f"opad: {snowfall_intensity_label(snowfall)} ({format_amount(snowfall, 'cm')})"
