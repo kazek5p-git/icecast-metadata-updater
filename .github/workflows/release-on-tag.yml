@@ -19,10 +19,15 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare signing key (optional)
-        if: ${{ secrets.UPDATER_SIGNING_KEY_PEM != '' }}
+        env:
+          UPDATER_SIGNING_KEY_PEM: ${{ secrets.UPDATER_SIGNING_KEY_PEM }}
         run: |
+          if [[ -z "${UPDATER_SIGNING_KEY_PEM:-}" ]]; then
+            echo "SIGNING_KEY_PATH=" >> "$GITHUB_ENV"
+            exit 0
+          fi
           KEY_PATH="$RUNNER_TEMP/updater_signing_private.pem"
-          printf '%s\n' "${{ secrets.UPDATER_SIGNING_KEY_PEM }}" > "$KEY_PATH"
+          printf '%s\n' "$UPDATER_SIGNING_KEY_PEM" > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
           echo "SIGNING_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
