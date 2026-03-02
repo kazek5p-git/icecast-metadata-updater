@@ -362,3 +362,16 @@ konta admin (`metadata_user` / `metadata_password`) zamiast samego `source`.
 Skrypt wysyła metadata w UTF-8. Klienci audio (np. `ffprobe`, wiele playerów) pokazują
 polskie znaki poprawnie. Na starszym Icecaście `status-json.xsl` może czasem pokazywać
 zniekształcone znaki, ale nie musi to oznaczać błędu po stronie słuchacza.
+
+## Automatyczne wydania (GitHub Releases)
+
+Release tworzy sie automatycznie po wypchnieciu taga w formacie `vX.Y.Z`.
+
+Przyklad:
+
+```bash
+git tag v2026.03.02.1
+git push origin main --tags
+```
+
+Workflow buduje nowa paczke instalacyjna (`.tar.gz`), sumy SHA256 i publikuje je jako GitHub Release.

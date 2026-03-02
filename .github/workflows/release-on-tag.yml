@@ -1,0 +1,56 @@
+name: release-on-tag
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  bundle-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        run: |
+          APP_VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$APP_VERSION" ]; then
+            echo "Nieprawidlowy tag: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+
+      - name: Build installer bundle
+        run: |
+          chmod +x make_installer_bundle.sh
+          ./make_installer_bundle.sh --out-dir dist
+          test -f dist/latest.json
+          test -f dist/CHANGELOG.md
+
+      - name: Resolve artifacts
+        run: |
+          TAR_PATH="$(ls -1t dist/icecast-metadata-updater-*.tar.gz | head -n1)"
+          SHA_PATH="${TAR_PATH}.sha256"
+          test -f "$TAR_PATH"
+          test -f "$SHA_PATH"
+          echo "TAR_PATH=$TAR_PATH" >> "$GITHUB_ENV"
+          echo "SHA_PATH=$SHA_PATH" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Icecast Metadata Updater ${{ env.APP_VERSION }}
+          generate_release_notes: true
+          files: |
+            ${{ env.TAR_PATH }}
+            ${{ env.SHA_PATH }}
+            dist/latest.json
+            dist/CHANGELOG.md
