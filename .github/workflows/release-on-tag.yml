@@ -27,6 +27,14 @@ jobs:
           fi
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
 
+          if echo "$APP_VERSION" | grep -Eiq '(^|[.-])(rc|beta|alpha)[0-9]*$'; then
+            echo "RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
+            echo "RELEASE_MAKE_LATEST=false" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_PRERELEASE=false" >> "$GITHUB_ENV"
+            echo "RELEASE_MAKE_LATEST=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Build installer bundle
         run: |
           chmod +x make_installer_bundle.sh
@@ -49,6 +57,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Icecast Metadata Updater ${{ env.APP_VERSION }}
           generate_release_notes: true
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
           files: |
             ${{ env.TAR_PATH }}
             ${{ env.SHA_PATH }}
