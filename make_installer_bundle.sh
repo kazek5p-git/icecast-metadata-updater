@@ -6,6 +6,10 @@ OUT_DIR="$SCRIPT_DIR/dist"
 PUBLISH_DIR=""
 SITE_URL=""
 CLEAN_PUBLISH=0
+SIGNING_KEY_PATH="${SIGNING_KEY_PATH:-}"
+SIGNATURE_PATH=""
+SIGNATURE_B64=""
+SIGNATURE_ALGO=""
 
 print_help() {
   cat <<EOF
@@ -17,10 +21,12 @@ Opcje:
   --publish-dir KATALOG   Publikuj wynik do katalogu WWW
   --site-url URL          Publiczny URL katalogu publikacji (np. https://kazpar.pl/icecast-updater)
   --clean-publish         Przed publikacja usun stare paczki icecast-metadata-updater-*.tar.gz(.sha256)
+  --signing-key PLIK      Klucz prywatny PEM do podpisu paczki (RSA)
   -h, --help              Pomoc
 
 Przyklady:
   ./make_installer_bundle.sh
+  ./make_installer_bundle.sh --signing-key "$HOME/.keys/icecast_updater_signing_private.pem"
   ./make_installer_bundle.sh --publish-dir "$HOME/www/icecast-updater" --site-url "https://kazpar.pl/icecast-updater"
   ./make_installer_bundle.sh --publish-dir "$HOME/www/icecast-updater" --site-url "https://kazpar.pl/icecast-updater" --clean-publish
 EOF
@@ -80,6 +86,9 @@ write_manifest() {
   local install_script_name="$8"
   local doctor_script_name="$9"
   local manifest_changes_json="${10:-[]}"
+  local signature_algo="${11:-}"
+  local signature_b64="${12:-}"
+  local signature_file_name="${13:-}"
 
   {
     echo "{"
@@ -95,6 +104,19 @@ write_manifest() {
       echo "  \"changelog_url\": \"$site_url/$changelog_name\","
       echo "  \"install_script_url\": \"$site_url/$install_script_name\","
       echo "  \"doctor_script_url\": \"$site_url/$doctor_script_name\","
+    fi
+    if [[ -n "$signature_b64" ]]; then
+      echo "  \"signature_required\": true,"
+      echo "  \"signature_algo\": \"$signature_algo\","
+      echo "  \"signature\": \"$signature_b64\","
+      if [[ -n "$signature_file_name" ]]; then
+        echo "  \"signature_file\": \"$signature_file_name\","
+        if [[ -n "$site_url" ]]; then
+          echo "  \"signature_url\": \"$site_url/$signature_file_name\","
+        fi
+      fi
+    else
+      echo "  \"signature_required\": false,"
     fi
     echo "  \"sha256\": \"$sha256\","
     echo "  \"generated_at_utc\": \"$generated_at\""
@@ -442,6 +464,11 @@ while [[ $# -gt 0 ]]; do
       CLEAN_PUBLISH=1
       shift
       ;;
+    --signing-key)
+      [[ $# -lt 2 ]] && { echo "Brak wartosci dla --signing-key" >&2; exit 1; }
+      SIGNING_KEY_PATH="$2"
+      shift 2
+      ;;
     -h|--help)
       print_help
       exit 0
@@ -466,6 +493,15 @@ OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 if [[ -n "$PUBLISH_DIR" ]]; then
   mkdir -p "$PUBLISH_DIR"
   PUBLISH_DIR="$(cd "$PUBLISH_DIR" && pwd)"
+fi
+
+if [[ -n "$SIGNING_KEY_PATH" ]]; then
+  if [[ ! -f "$SIGNING_KEY_PATH" ]]; then
+    echo "Brak klucza prywatnego: $SIGNING_KEY_PATH" >&2
+    exit 1
+  fi
+  require_cmd openssl
+  SIGNING_KEY_PATH="$(cd "$(dirname "$SIGNING_KEY_PATH")" && pwd)/$(basename "$SIGNING_KEY_PATH")"
 fi
 
 if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -505,6 +541,10 @@ cp "$SCRIPT_DIR/config.tuner-only.example.json" "$PKG_DIR/"
 cp "$SCRIPT_DIR/README.md" "$PKG_DIR/"
 cp "$CHANGELOG_PATH" "$PKG_DIR/$CHANGELOG_NAME"
 cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
+if [[ -f "$SCRIPT_DIR/signing/updater_signing_public.pem" ]]; then
+  mkdir -p "$PKG_DIR/signing"
+  cp "$SCRIPT_DIR/signing/updater_signing_public.pem" "$PKG_DIR/signing/"
+fi
 
 chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/auto_update.sh" \
   "$PKG_DIR/config_wizard.py" "$PKG_DIR/install_online.sh" \
@@ -522,26 +562,49 @@ CHECKSUM_PATH="$ARCHIVE_PATH.sha256"
 sha256sum "$ARCHIVE_PATH" > "$CHECKSUM_PATH"
 SHA_VALUE="$(awk '{print $1}' "$CHECKSUM_PATH")"
 
+if [[ -n "$SIGNING_KEY_PATH" ]]; then
+  SIGNATURE_PATH="$ARCHIVE_PATH.sig"
+  openssl dgst -sha256 -sign "$SIGNING_KEY_PATH" -out "$SIGNATURE_PATH" "$ARCHIVE_PATH"
+  SIGNATURE_ALGO="rsa-sha256"
+  SIGNATURE_B64="$(python3 - "$SIGNATURE_PATH" <<'PY'
+import base64, sys
+with open(sys.argv[1], "rb") as f:
+    print(base64.b64encode(f.read()).decode("ascii"))
+PY
+)"
+fi
+
 LATEST_JSON_PATH="$OUT_DIR/latest.json"
 ARCHIVE_NAME="$(basename "$ARCHIVE_PATH")"
 MANIFEST_CHANGES_JSON="$(collect_manifest_changes_json)"
-write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME" "$MANIFEST_CHANGES_JSON"
+SIGNATURE_FILE_NAME=""
+if [[ -n "$SIGNATURE_PATH" ]]; then
+  SIGNATURE_FILE_NAME="$(basename "$SIGNATURE_PATH")"
+fi
+write_manifest "$LATEST_JSON_PATH" "$VERSION" "$ARCHIVE_NAME" "$SHA_VALUE" "$GENERATED_AT_UTC" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME" "$MANIFEST_CHANGES_JSON" "$SIGNATURE_ALGO" "$SIGNATURE_B64" "$SIGNATURE_FILE_NAME"
 
 if [[ -n "$PUBLISH_DIR" ]]; then
   mkdir -p "$PUBLISH_DIR"
 
   if [[ "$CLEAN_PUBLISH" -eq 1 ]]; then
     find "$PUBLISH_DIR" -maxdepth 1 -type f \
-      \( -name 'icecast-metadata-updater-*.tar.gz' -o -name 'icecast-metadata-updater-*.tar.gz.sha256' \) \
+      \( -name 'icecast-metadata-updater-*.tar.gz' -o -name 'icecast-metadata-updater-*.tar.gz.sha256' -o -name 'icecast-metadata-updater-*.tar.gz.sig' \) \
       -delete
   fi
 
   cp -f "$ARCHIVE_PATH" "$PUBLISH_DIR/"
   cp -f "$CHECKSUM_PATH" "$PUBLISH_DIR/"
+  if [[ -n "$SIGNATURE_PATH" ]]; then
+    cp -f "$SIGNATURE_PATH" "$PUBLISH_DIR/"
+  fi
   cp -f "$CHANGELOG_PATH" "$PUBLISH_DIR/$CHANGELOG_NAME"
   cp -f "$SCRIPT_DIR/install_online.sh" "$PUBLISH_DIR/$INSTALL_SCRIPT_NAME"
   cp -f "$SCRIPT_DIR/install_tuner_only.sh" "$PUBLISH_DIR/$TUNER_INSTALL_SCRIPT_NAME"
   cp -f "$SCRIPT_DIR/config.tuner-only.example.json" "$PUBLISH_DIR/$TUNER_CONFIG_NAME"
+  if [[ -f "$SCRIPT_DIR/signing/updater_signing_public.pem" ]]; then
+    mkdir -p "$PUBLISH_DIR/signing"
+    cp -f "$SCRIPT_DIR/signing/updater_signing_public.pem" "$PUBLISH_DIR/signing/updater_signing_public.pem"
+  fi
   rm -f "$PUBLISH_DIR/install_fmdx_only.sh" "$PUBLISH_DIR/config.fmdx-only.example.json"
   cp -f "$SCRIPT_DIR/doctor.sh" "$PUBLISH_DIR/$DOCTOR_SCRIPT_NAME"
   cp -f "$LATEST_JSON_PATH" "$PUBLISH_DIR/latest.json"
@@ -552,6 +615,9 @@ rm -rf "$STAGE_DIR"
 
 echo "Paczka gotowa: $ARCHIVE_PATH"
 echo "Suma SHA256: $CHECKSUM_PATH"
+if [[ -n "$SIGNATURE_PATH" ]]; then
+  echo "Podpis: $SIGNATURE_PATH"
+fi
 echo "Changelog: $CHANGELOG_PATH"
 echo "Manifest: $LATEST_JSON_PATH"
 if [[ -n "$PUBLISH_DIR" ]]; then

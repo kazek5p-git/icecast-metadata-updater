@@ -205,6 +205,19 @@ Po stronie autora (u Ciebie):
 - `https://kazpar.pl/icecast-updater/doctor.sh`
 - `https://kazpar.pl/icecast-updater/CHANGELOG.md`
 
+Rekomendowane (bezpieczenstwo): publikuj paczki z podpisem cyfrowym:
+
+```bash
+./make_installer_bundle.sh \
+  --publish-dir "$HOME/www/icecast-updater" \
+  --site-url "https://kazpar.pl/icecast-updater" \
+  --clean-publish \
+  --signing-key "$HOME/.keys/icecast_updater_signing_private.pem"
+```
+
+Wtedy `latest.json` zawiera pola `signature_required`, `signature_algo` i `signature`,
+a instalatory online/auto-update weryfikuja podpis paczki (poza SHA256).
+
 Po stronie znajomego (jednorazowo):
 
 ```bash
@@ -225,6 +238,8 @@ W tym pliku masz teraz w jednym miejscu:
 - sprawdzenie przy starcie programu (`UPDATE_CHECK_ON_START`),
 - opóźnienie checka przy starcie programu (`UPDATE_CHECK_ON_START_DELAY_SEC`),
 - timeout sprawdzenia przy starcie (`UPDATE_CHECK_TIMEOUT_SEC`).
+- opcjonalna sciezka do klucza publicznego (`SIGNING_PUBLIC_KEY_PATH`),
+- wymuszenie podpisu (`ALLOW_UNSIGNED=0` domyslnie).
 
 Po ręcznej zmianie tych wartości uruchom ponownie:
 

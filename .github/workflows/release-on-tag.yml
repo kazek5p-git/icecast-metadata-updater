@@ -14,9 +14,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+
+      - name: Prepare signing key (optional)
+        if: ${{ secrets.UPDATER_SIGNING_KEY_PEM != '' }}
+        run: |
+          KEY_PATH="$RUNNER_TEMP/updater_signing_private.pem"
+          printf '%s\n' "${{ secrets.UPDATER_SIGNING_KEY_PEM }}" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "SIGNING_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Resolve version
         run: |
@@ -38,7 +46,11 @@ jobs:
       - name: Build installer bundle
         run: |
           chmod +x make_installer_bundle.sh
-          ./make_installer_bundle.sh --out-dir dist
+          if [[ -n "${SIGNING_KEY_PATH:-}" ]]; then
+            ./make_installer_bundle.sh --out-dir dist --signing-key "$SIGNING_KEY_PATH"
+          else
+            ./make_installer_bundle.sh --out-dir dist
+          fi
           test -f dist/latest.json
           test -f dist/CHANGELOG.md
 
@@ -46,21 +58,25 @@ jobs:
         run: |
           TAR_PATH="$(ls -1t dist/icecast-metadata-updater-*.tar.gz | head -n1)"
           SHA_PATH="${TAR_PATH}.sha256"
+          SIG_PATH="${TAR_PATH}.sig"
           test -f "$TAR_PATH"
           test -f "$SHA_PATH"
-          echo "TAR_PATH=$TAR_PATH" >> "$GITHUB_ENV"
-          echo "SHA_PATH=$SHA_PATH" >> "$GITHUB_ENV"
+          RELEASE_FILES="$TAR_PATH"$'\n'"$SHA_PATH"$'\n'"dist/latest.json"$'\n'"dist/CHANGELOG.md"
+          if [[ -f "$SIG_PATH" ]]; then
+            RELEASE_FILES="$RELEASE_FILES"$'\n'"$SIG_PATH"
+          fi
+          {
+            echo "RELEASE_FILES<<EOF"
+            echo "$RELEASE_FILES"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Icecast Metadata Updater ${{ env.APP_VERSION }}
           generate_release_notes: true
           prerelease: ${{ env.RELEASE_PRERELEASE }}
           make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: |
-            ${{ env.TAR_PATH }}
-            ${{ env.SHA_PATH }}
-            dist/latest.json
-            dist/CHANGELOG.md
+          files: ${{ env.RELEASE_FILES }}
