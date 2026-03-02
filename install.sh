@@ -111,8 +111,10 @@ for needed in \
   "$SCRIPT_DIR/auto_update.sh" \
   "$SCRIPT_DIR/auto_update.example.conf" \
   "$SCRIPT_DIR/enable_auto_update.sh" \
+  "$SCRIPT_DIR/install_tuner_only.sh" \
   "$SCRIPT_DIR/update.sh" \
   "$SCRIPT_DIR/config.example.json" \
+  "$SCRIPT_DIR/config.tuner-only.example.json" \
   "$SCRIPT_DIR/systemd/icecast-metadata-updater.service"; do
   if [[ ! -f "$needed" ]]; then
     echo "Brak wymaganego pliku: $needed" >&2
@@ -129,10 +131,12 @@ copy_file "$SCRIPT_DIR/start_updater.sh" "$INSTALL_DIR/start_updater.sh"
 copy_file "$SCRIPT_DIR/auto_update.sh" "$INSTALL_DIR/auto_update.sh"
 copy_file "$SCRIPT_DIR/auto_update.example.conf" "$INSTALL_DIR/auto_update.example.conf"
 copy_file "$SCRIPT_DIR/enable_auto_update.sh" "$INSTALL_DIR/enable_auto_update.sh"
+copy_file "$SCRIPT_DIR/install_tuner_only.sh" "$INSTALL_DIR/install_tuner_only.sh"
 copy_file "$SCRIPT_DIR/update.sh" "$INSTALL_DIR/update.sh"
 copy_file "$SCRIPT_DIR/install.sh" "$INSTALL_DIR/install.sh"
 copy_file "$SCRIPT_DIR/README.md" "$INSTALL_DIR/README.md"
 copy_file "$SCRIPT_DIR/config.example.json" "$INSTALL_DIR/config.example.json"
+copy_file "$SCRIPT_DIR/config.tuner-only.example.json" "$INSTALL_DIR/config.tuner-only.example.json"
 copy_file "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$INSTALL_DIR/systemd/icecast-metadata-updater.service"
 if [[ -f "$SCRIPT_DIR/install_online.sh" ]]; then
   copy_file "$SCRIPT_DIR/install_online.sh" "$INSTALL_DIR/install_online.sh"
@@ -145,6 +149,7 @@ fi
 
 chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/config_wizard.py" \
   "$INSTALL_DIR/doctor.sh" "$INSTALL_DIR/auto_update.sh" "$INSTALL_DIR/enable_auto_update.sh" \
+  "$INSTALL_DIR/install_tuner_only.sh" \
   "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh"
 
 if [[ ! -f "$INSTALL_DIR/config.json" ]]; then

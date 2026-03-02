@@ -171,6 +171,16 @@ DEFAULT_CONFIG = {
         "interval_seconds": 120,
         "dry_run": False,
     },
+    "outside": {
+        "enabled": True,
+    },
+    "tuner": {
+        "enabled": True,
+        "mount_name": "tuner",
+        "interval_seconds": 30,
+        "api_url": "http://127.0.0.1:8080/api",
+        "title_template": "Tuner: {freq} MHz | RDS: {ps}",
+    },
     "title_mode": "outside",
 }
 
@@ -202,6 +212,12 @@ class RuntimeConfig:
     timezone: str
     interval_seconds: int
     dry_run: bool
+    outside_enabled: bool
+    tuner_enabled: bool
+    tuner_mount_name: str
+    tuner_interval_seconds: int
+    tuner_api_url: str
+    tuner_title_template: str
     title_mode: str
     title_template: str
 
@@ -239,6 +255,22 @@ def first_nonempty(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def to_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"1", "true", "t", "yes", "y", "on"}:
+            return True
+        if lowered in {"0", "false", "f", "no", "n", "off"}:
+            return False
+    return default
 
 
 # ---------------------------------------------------------------------------
@@ -377,6 +409,66 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
             deep_get(DEFAULT_CONFIG, "update", "dry_run"),
         )
     )
+    outside_enabled = to_bool(
+        first_nonempty(
+            deep_get(file_cfg, "outside", "enabled"),
+            deep_get(DEFAULT_CONFIG, "outside", "enabled"),
+        ),
+        default=True,
+    )
+
+    tuner_enabled = to_bool(
+        first_nonempty(
+            deep_get(file_cfg, "tuner", "enabled"),
+            deep_get(DEFAULT_CONFIG, "tuner", "enabled"),
+        ),
+        default=True,
+    )
+    tuner_mount_name = str(
+        first_nonempty(
+            deep_get(file_cfg, "tuner", "mount_name"),
+            deep_get(DEFAULT_CONFIG, "tuner", "mount_name"),
+            "tuner",
+        )
+    ).strip().lstrip("/")
+    tuner_interval_seconds = int(
+        first_nonempty(
+            deep_get(file_cfg, "tuner", "interval_seconds"),
+            deep_get(DEFAULT_CONFIG, "tuner", "interval_seconds"),
+            30,
+        )
+    )
+    tuner_api_url = str(
+        first_nonempty(
+            deep_get(file_cfg, "tuner", "api_url"),
+            deep_get(DEFAULT_CONFIG, "tuner", "api_url"),
+            "http://127.0.0.1:8080/api",
+        )
+    ).strip()
+    tuner_title_template = str(
+        first_nonempty(
+            deep_get(file_cfg, "tuner", "title_template"),
+            deep_get(DEFAULT_CONFIG, "tuner", "title_template"),
+            "Tuner: {freq} MHz | RDS: {ps}",
+        )
+    ).strip()
+
+    if tuner_enabled and not tuner_mount_name:
+        log("UWAGA: tuner.enabled=true, ale brak tuner.mount_name - wylaczam sekcje tuner")
+        tuner_enabled = False
+
+    if tuner_enabled and not tuner_api_url:
+        log("UWAGA: tuner.enabled=true, ale brak tuner.api_url - wylaczam sekcje tuner")
+        tuner_enabled = False
+
+    if tuner_enabled and not tuner_title_template:
+        log("UWAGA: tuner.enabled=true, ale brak tuner.title_template - uzywam domyslnego")
+        tuner_title_template = "Tuner: {freq} MHz | RDS: {ps}"
+
+    tuner_interval_seconds = max(2, tuner_interval_seconds)
+    if not outside_enabled and not tuner_enabled:
+        log("UWAGA: outside.enabled=false i tuner.enabled=false - program nic nie bedzie aktualizowal")
+
     title_mode_raw = first_nonempty(
         args.title_mode,
         deep_get(file_cfg, "title_mode"),
@@ -445,6 +537,12 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
         timezone=str(timezone),
         interval_seconds=max(10, interval_seconds),
         dry_run=dry_run,
+        outside_enabled=outside_enabled,
+        tuner_enabled=tuner_enabled,
+        tuner_mount_name=tuner_mount_name,
+        tuner_interval_seconds=tuner_interval_seconds,
+        tuner_api_url=tuner_api_url,
+        tuner_title_template=tuner_title_template,
         title_mode=effective_title_mode,
         title_template=str(title_template),
     )
@@ -1004,65 +1102,254 @@ def update_mount_metadata(cfg: RuntimeConfig, mount_name: str, title: str) -> tu
 
 
 # ---------------------------------------------------------------------------
+# Sekcja: Tuner (FMDX API -> metadata mounta)
+# ---------------------------------------------------------------------------
+
+def normalize_tuner_frequency(freq_raw: Any) -> str:
+    if freq_raw is None:
+        raise ValueError("Brak pola 'freq' w odpowiedzi API tunera")
+
+    if isinstance(freq_raw, (int, float)):
+        value = float(freq_raw)
+    else:
+        text = str(freq_raw).strip().replace(",", ".")
+        if not text:
+            raise ValueError("Puste pole 'freq' w odpowiedzi API tunera")
+        value = float(text)
+
+    return f"{value:.3f}"
+
+
+def normalize_tuner_text(value_raw: Any, default: str = "") -> str:
+    if value_raw is None:
+        return default
+
+    text = re.sub(r"\s+", " ", str(value_raw)).strip()
+    if not text or text == "?":
+        return default
+    return text
+
+
+def normalize_tuner_ps(ps_raw: Any) -> str:
+    return normalize_tuner_text(ps_raw, default="brak RDS")
+
+
+def normalize_tuner_power(erp_raw: Any) -> str:
+    text = normalize_tuner_text(erp_raw)
+    if not text:
+        return "brak danych"
+
+    lowered = text.lower()
+    if "w" in lowered:
+        return text
+
+    try:
+        value = float(text.replace(",", "."))
+    except ValueError:
+        return text
+
+    if value.is_integer():
+        return f"{int(value)} kW"
+    return f"{value:.1f} kW"
+
+
+def normalize_tuner_distance(dist_raw: Any) -> str:
+    text = normalize_tuner_text(dist_raw)
+    if not text:
+        return "brak danych"
+
+    lowered = text.lower()
+    if "km" in lowered:
+        return text
+
+    try:
+        value = float(text.replace(",", "."))
+    except ValueError:
+        return text
+
+    if value.is_integer():
+        return f"{int(value)} km"
+    return f"{value:.1f} km"
+
+
+def normalize_tuner_signal(sig_raw: Any) -> str:
+    text = normalize_tuner_text(sig_raw)
+    if not text:
+        return "brak danych"
+
+    lowered = text.lower()
+    if "db" in lowered:
+        return text
+
+    try:
+        value = float(text.replace(",", "."))
+    except ValueError:
+        return text
+
+    return f"{value:.1f} dB"
+
+
+class SafeTemplateDict(dict):
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def fetch_tuner_snapshot(cfg: RuntimeConfig) -> dict[str, str]:
+    payload = http_get_json(cfg.tuner_api_url, timeout=10, retries=1)
+    if not isinstance(payload, dict):
+        raise ValueError("API tunera zwrocilo nieprawidlowy format (oczekiwano JSON object)")
+
+    tx_info = payload.get("txInfo")
+    if not isinstance(tx_info, dict):
+        tx_info = {}
+
+    freq = normalize_tuner_frequency(payload.get("freq"))
+    ps = normalize_tuner_ps(payload.get("ps"))
+    pi = normalize_tuner_text(payload.get("pi"), default="brak PI")
+
+    tx_name = normalize_tuner_text(tx_info.get("tx"))
+    tx_city = normalize_tuner_text(tx_info.get("city"))
+    if tx_name and tx_city:
+        station = f"{tx_name} ({tx_city})"
+    elif tx_name:
+        station = tx_name
+    elif tx_city:
+        station = tx_city
+    elif ps != "brak RDS":
+        station = ps
+    else:
+        station = "nieznana stacja"
+
+    power = normalize_tuner_power(tx_info.get("erp"))
+    distance = normalize_tuner_distance(tx_info.get("dist"))
+    azimuth = normalize_tuner_text(tx_info.get("azi"), default="brak danych")
+    signal = normalize_tuner_signal(payload.get("sig"))
+    rt = normalize_tuner_text(payload.get("rt0"), default="brak radiotextu")
+
+    return {
+        "freq": freq,
+        "ps": ps,
+        "pi": pi,
+        "station": station,
+        "tx": tx_name or "brak danych",
+        "tx_city": tx_city or "brak danych",
+        "power": power,
+        "distance": distance,
+        "azimuth": azimuth,
+        "signal": signal,
+        "rt": rt,
+    }
+
+
+def build_tuner_title(cfg: RuntimeConfig, snapshot: dict[str, str]) -> str:
+    values: dict[str, str] = dict(snapshot)
+    values["mount"] = cfg.tuner_mount_name
+    return cfg.tuner_title_template.format_map(SafeTemplateDict(values))
+
+
+# ---------------------------------------------------------------------------
 # Sekcja: Cykl pracy programu
 # ---------------------------------------------------------------------------
 
 def run_cycle(cfg: RuntimeConfig, geocode_cache: dict[str, GeoPoint]) -> None:
-    mounts = list_outside_mounts(cfg)
-    if not mounts:
-        log(f"Brak aktywnych mountow z prefiksem '{cfg.mount_prefix}'")
+    if not hasattr(run_cycle, "_last_weather_update_ts"):
+        run_cycle._last_weather_update_ts = 0.0  # type: ignore[attr-defined]
+
+    now_ts = time.time()
+    if not cfg.outside_enabled:
+        weather_due = False
+    else:
+        weather_due = (
+            run_cycle._last_weather_update_ts <= 0.0  # type: ignore[attr-defined]
+            or (now_ts - run_cycle._last_weather_update_ts) >= cfg.interval_seconds  # type: ignore[attr-defined]
+        )
+
+    if not cfg.outside_enabled and run_cycle._last_weather_update_ts <= 0.0:  # type: ignore[attr-defined]
+        log("Sekcja outside jest wylaczona (outside.enabled=false)")
+        run_cycle._last_weather_update_ts = now_ts  # type: ignore[attr-defined]
+
+    if weather_due:
+        mounts = list_outside_mounts(cfg)
+        if not mounts:
+            log(f"Brak aktywnych mountow z prefiksem '{cfg.mount_prefix}'")
+        else:
+            log(f"Wykryto mounty: {', '.join(mounts)}")
+
+            mount_city: dict[str, str] = {}
+            for mount in mounts:
+                city = guess_city_from_mount(mount, cfg.mount_prefix, cfg.city_overrides)
+                mount_city[mount] = city
+
+            weather_cache: dict[str, dict[str, Any]] = {}
+            air_quality_cache: dict[str, dict[str, Any] | None] = {}
+            geo_names: dict[str, str] = {}
+
+            for city in sorted(set(mount_city.values())):
+                try:
+                    point = geocode_city(city, cfg, geocode_cache)
+                    weather = current_weather(point, cfg)
+                except Exception as exc:
+                    log(f"BLAD pogody dla miasta '{city}': {exc}")
+                    continue
+                try:
+                    air_quality = current_air_quality(point, cfg)
+                except Exception as exc:
+                    log(f"UWAGA brak danych jakości powietrza dla miasta '{city}': {exc}")
+                    air_quality = None
+                weather_cache[city] = weather
+                air_quality_cache[city] = air_quality
+                geo_names[city] = point.name
+
+            for mount in mounts:
+                city_query = mount_city[mount]
+                weather = weather_cache.get(city_query)
+                air_quality = air_quality_cache.get(city_query)
+                city_name = geo_names.get(city_query)
+                if weather is None or city_name is None:
+                    log(f"POMINIETO {mount}: brak danych pogodowych dla '{city_query}'")
+                    continue
+                title = build_title(cfg.title_template, city_name, weather, mount, air_quality)
+
+                if cfg.dry_run:
+                    log(f"DRY RUN {mount}: {title}")
+                    continue
+
+                try:
+                    ok, message = update_mount_metadata(cfg, mount, title)
+                except Exception as exc:
+                    log(f"BLAD {mount}: {exc}")
+                    continue
+                if ok:
+                    log(f"OK {mount}: {title}")
+                else:
+                    log(f"BLAD {mount}: {message}")
+
+        run_cycle._last_weather_update_ts = now_ts  # type: ignore[attr-defined]
+
+    if not cfg.tuner_enabled:
         return
 
-    log(f"Wykryto mounty: {', '.join(mounts)}")
+    try:
+        snapshot = fetch_tuner_snapshot(cfg)
+        tuner_title = build_tuner_title(cfg, snapshot)
+    except Exception as exc:
+        log(f"BLAD {cfg.tuner_mount_name}: pobieranie danych tunera nieudane ({exc})")
+        return
 
-    mount_city: dict[str, str] = {}
-    for mount in mounts:
-        city = guess_city_from_mount(mount, cfg.mount_prefix, cfg.city_overrides)
-        mount_city[mount] = city
+    if cfg.dry_run:
+        log(f"DRY RUN {cfg.tuner_mount_name}: {tuner_title}")
+        return
 
-    weather_cache: dict[str, dict[str, Any]] = {}
-    air_quality_cache: dict[str, dict[str, Any] | None] = {}
-    geo_names: dict[str, str] = {}
+    try:
+        ok, message = update_mount_metadata(cfg, cfg.tuner_mount_name, tuner_title)
+    except Exception as exc:
+        log(f"BLAD {cfg.tuner_mount_name}: {exc}")
+        return
 
-    for city in sorted(set(mount_city.values())):
-        try:
-            point = geocode_city(city, cfg, geocode_cache)
-            weather = current_weather(point, cfg)
-        except Exception as exc:
-            log(f"BLAD pogody dla miasta '{city}': {exc}")
-            continue
-        try:
-            air_quality = current_air_quality(point, cfg)
-        except Exception as exc:
-            log(f"UWAGA brak danych jakości powietrza dla miasta '{city}': {exc}")
-            air_quality = None
-        weather_cache[city] = weather
-        air_quality_cache[city] = air_quality
-        geo_names[city] = point.name
-
-    for mount in mounts:
-        city_query = mount_city[mount]
-        weather = weather_cache.get(city_query)
-        air_quality = air_quality_cache.get(city_query)
-        city_name = geo_names.get(city_query)
-        if weather is None or city_name is None:
-            log(f"POMINIETO {mount}: brak danych pogodowych dla '{city_query}'")
-            continue
-        title = build_title(cfg.title_template, city_name, weather, mount, air_quality)
-
-        if cfg.dry_run:
-            log(f"DRY RUN {mount}: {title}")
-            continue
-
-        try:
-            ok, message = update_mount_metadata(cfg, mount, title)
-        except Exception as exc:
-            log(f"BLAD {mount}: {exc}")
-            continue
-        if ok:
-            log(f"OK {mount}: {title}")
-        else:
-            log(f"BLAD {mount}: {message}")
+    if ok:
+        log(f"OK {cfg.tuner_mount_name}: {tuner_title}")
+    else:
+        log(f"BLAD {cfg.tuner_mount_name}: {message}")
 
 
 # ---------------------------------------------------------------------------
@@ -1116,11 +1403,24 @@ def main() -> int:
         return 2
 
     log(
-        "Start: base_url=%s mount_prefix=%s interval=%ss dry_run=%s title_mode=%s"
-        % (cfg.base_url, cfg.mount_prefix, cfg.interval_seconds, cfg.dry_run, cfg.title_mode)
+        "Start: base_url=%s mount_prefix=%s interval=%ss dry_run=%s title_mode=%s outside_enabled=%s tuner_enabled=%s tuner_mount=%s tuner_interval=%ss"
+        % (
+            cfg.base_url,
+            cfg.mount_prefix,
+            cfg.interval_seconds,
+            cfg.dry_run,
+            cfg.title_mode,
+            cfg.outside_enabled,
+            cfg.tuner_enabled,
+            cfg.tuner_mount_name,
+            cfg.tuner_interval_seconds,
+        )
     )
 
     geocode_cache: dict[str, GeoPoint] = {}
+    cycle_interval = cfg.interval_seconds
+    if cfg.tuner_enabled:
+        cycle_interval = max(2, min(cfg.interval_seconds, cfg.tuner_interval_seconds))
 
     try:
         while True:
@@ -1134,7 +1434,7 @@ def main() -> int:
                 break
 
             elapsed = time.time() - cycle_start
-            sleep_seconds = max(1, cfg.interval_seconds - int(elapsed))
+            sleep_seconds = max(0.2, cycle_interval - elapsed)
             time.sleep(sleep_seconds)
     except KeyboardInterrupt:
         log("Przerwano przez uzytkownika")

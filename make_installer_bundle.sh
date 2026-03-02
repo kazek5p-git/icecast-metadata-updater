@@ -139,24 +139,31 @@ write_index() {
   local changelog_name="$6"
   local install_script_name="$7"
   local doctor_script_name="$8"
+  local tuner_install_script_name="$9"
+  local tuner_config_name="${10}"
   local manifest_url_hint
   local archive_url_hint
   local install_script_url_hint
   local doctor_script_url_hint
+  local tuner_install_script_url_hint
   local online_cmd
+  local online_tuner_cmd
 
   if [[ -n "$site_url" ]]; then
     manifest_url_hint="$site_url/latest.json"
     archive_url_hint="$site_url/$archive_name"
     install_script_url_hint="$site_url/$install_script_name"
     doctor_script_url_hint="$site_url/$doctor_script_name"
+    tuner_install_script_url_hint="$site_url/$tuner_install_script_name"
   else
     manifest_url_hint="<TWOJ_URL>/latest.json"
     archive_url_hint="$archive_name"
     install_script_url_hint="<TWOJ_URL>/$install_script_name"
     doctor_script_url_hint="<TWOJ_URL>/$doctor_script_name"
+    tuner_install_script_url_hint="<TWOJ_URL>/$tuner_install_script_name"
   fi
   online_cmd="curl -fsSL $install_script_url_hint | bash"
+  online_tuner_cmd="curl -fsSL $tuner_install_script_url_hint | bash"
 
   cat > "$path" <<EOF
 <!doctype html>
@@ -370,6 +377,8 @@ write_index() {
       <p><strong>Wygenerowano (UTC):</strong> $generated_at</p>
       <div class="links">
         <a class="btn alt" href="$install_script_name">Instalator online</a>
+        <a class="btn alt" href="$tuner_install_script_name">Instalator Title Update for FMDX</a>
+        <a class="btn alt" href="$tuner_config_name">Config Title Update for FMDX</a>
         <a class="btn alt" href="$doctor_script_name">Skrypt doctor.sh</a>
         <a class="btn" href="$archive_name">Pobierz paczkę</a>
         <a class="btn alt" href="$archive_name.sha256">Suma SHA256</a>
@@ -379,6 +388,8 @@ write_index() {
     </section>
     <p><strong>Instalacja 1 komendą (online):</strong></p>
     <pre><code>$online_cmd</code></pre>
+    <p><strong>Instalacja 1 komendą (Title Update for FMDX, bez outside_*):</strong></p>
+    <pre><code>$online_tuner_cmd</code></pre>
     <p>Opis zmian znajduje się w pliku <code>$changelog_name</code>.</p>
     <section class="warn">
       <p><strong>Ważne:</strong> samo pobranie paczki <code>.tar.gz</code> nie uruchamia programu.</p>
@@ -461,6 +472,8 @@ CHANGELOG_NAME="CHANGELOG.md"
 CHANGELOG_PATH="$OUT_DIR/$CHANGELOG_NAME"
 INSTALL_SCRIPT_NAME="install_online.sh"
 DOCTOR_SCRIPT_NAME="doctor.sh"
+TUNER_INSTALL_SCRIPT_NAME="install_tuner_only.sh"
+TUNER_CONFIG_NAME="config.tuner-only.example.json"
 
 mkdir -p "$PKG_DIR/systemd"
 mkdir -p "$OUT_DIR"
@@ -469,6 +482,7 @@ write_changelog "$CHANGELOG_PATH" "$VERSION" "$GENERATED_AT_UTC"
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config_wizard.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/install_online.sh" "$PKG_DIR/"
+cp "$SCRIPT_DIR/install_tuner_only.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/doctor.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/start_updater.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/auto_update.sh" "$PKG_DIR/"
@@ -477,12 +491,14 @@ cp "$SCRIPT_DIR/install.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/update.sh" "$PKG_DIR/"
 cp "$SCRIPT_DIR/auto_update.example.conf" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config.example.json" "$PKG_DIR/"
+cp "$SCRIPT_DIR/config.tuner-only.example.json" "$PKG_DIR/"
 cp "$SCRIPT_DIR/README.md" "$PKG_DIR/"
 cp "$CHANGELOG_PATH" "$PKG_DIR/$CHANGELOG_NAME"
 cp "$SCRIPT_DIR/systemd/icecast-metadata-updater.service" "$PKG_DIR/systemd/"
 
 chmod +x "$PKG_DIR/start_updater.sh" "$PKG_DIR/auto_update.sh" \
   "$PKG_DIR/config_wizard.py" "$PKG_DIR/install_online.sh" \
+  "$PKG_DIR/install_tuner_only.sh" \
   "$PKG_DIR/doctor.sh" "$PKG_DIR/enable_auto_update.sh" \
   "$PKG_DIR/install.sh" "$PKG_DIR/update.sh"
 
@@ -514,9 +530,12 @@ if [[ -n "$PUBLISH_DIR" ]]; then
   cp -f "$CHECKSUM_PATH" "$PUBLISH_DIR/"
   cp -f "$CHANGELOG_PATH" "$PUBLISH_DIR/$CHANGELOG_NAME"
   cp -f "$SCRIPT_DIR/install_online.sh" "$PUBLISH_DIR/$INSTALL_SCRIPT_NAME"
+  cp -f "$SCRIPT_DIR/install_tuner_only.sh" "$PUBLISH_DIR/$TUNER_INSTALL_SCRIPT_NAME"
+  cp -f "$SCRIPT_DIR/config.tuner-only.example.json" "$PUBLISH_DIR/$TUNER_CONFIG_NAME"
+  rm -f "$PUBLISH_DIR/install_fmdx_only.sh" "$PUBLISH_DIR/config.fmdx-only.example.json"
   cp -f "$SCRIPT_DIR/doctor.sh" "$PUBLISH_DIR/$DOCTOR_SCRIPT_NAME"
   cp -f "$LATEST_JSON_PATH" "$PUBLISH_DIR/latest.json"
-  write_index "$PUBLISH_DIR/index.html" "$VERSION" "$GENERATED_AT_UTC" "$ARCHIVE_NAME" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME"
+  write_index "$PUBLISH_DIR/index.html" "$VERSION" "$GENERATED_AT_UTC" "$ARCHIVE_NAME" "$SITE_URL" "$CHANGELOG_NAME" "$INSTALL_SCRIPT_NAME" "$DOCTOR_SCRIPT_NAME" "$TUNER_INSTALL_SCRIPT_NAME" "$TUNER_CONFIG_NAME"
 fi
 
 rm -rf "$STAGE_DIR"
@@ -531,6 +550,7 @@ if [[ -n "$PUBLISH_DIR" ]]; then
     echo "URL manifestu: $SITE_URL/latest.json"
     echo "URL strony: $SITE_URL/"
     echo "URL instalatora online: $SITE_URL/$INSTALL_SCRIPT_NAME"
+    echo "URL instalatora Title Update for FMDX: $SITE_URL/$TUNER_INSTALL_SCRIPT_NAME"
     echo "URL diagnostyki: $SITE_URL/$DOCTOR_SCRIPT_NAME"
     echo "URL changelogu: $SITE_URL/$CHANGELOG_NAME"
   fi

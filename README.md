@@ -7,6 +7,11 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `outside_lodz` -> `Łódź`
 - `outside_zabki` -> `Ząbki` (można nadpisać przez `city_overrides`)
 
+Dodatkowo może aktualizować osobny mount (np. `tuner`) danymi z API FM-DX:
+
+- częstotliwość (`freq`)
+- RDS PS (`ps`)
+
 ## Jak to działa
 
 1. Pobiera aktywne źródła z `status-json.xsl`.
@@ -16,12 +21,19 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
    oraz europejski indeks jakości powietrza (`AQI`).
 4. Wysyła update przez Icecast: `/admin/metadata?mode=updinfo`.
    Na starszych instalacjach, gdy trzeba, automatycznie przechodzi na `/admin/metadata.xsl`.
+5. (Opcjonalnie) dla mounta `tuner` pobiera dane z `http://127.0.0.1:8080/api`
+   i ustawia tytuł wg szablonu, np. `Tuner: 93.000 MHz | RDS: RMF FM`.
+   Częstotliwość odświeżania tunera ustawiasz osobno przez `tuner.interval_seconds`
+   (np. `5`), niezależnie od `update.interval_seconds` dla pogody.
+6. Sekcje `outside_*` możesz całkowicie wyłączyć przez `outside.enabled=false`
+   (przydatne dla osobnego wariantu Tuner-only).
 
 ## Pliki
 
 - `weather_metadata_updater.py` - główny skrypt
 - `config_wizard.py` - interaktywny kreator konfiguracji `config.json`
 - `install_online.sh` - instalator online (pobranie + weryfikacja + instalacja z `latest.json`)
+- `install_tuner_only.sh` - instalator online profilu Tuner-only (bez `outside_*`)
 - `doctor.sh` - szybka diagnostyka konfiguracji, polaczenia i uslug
 - `start_updater.sh` - start produkcyjny (UTF-8, lock, log, watchdog, opcjonalny check update przy starcie)
 - `install.sh` - instalator (kopiowanie plików + konfiguracja usługi `systemd --user`)
@@ -31,6 +43,7 @@ Dla każdego mounta pobiera pogodę dla miasta wywnioskowanego z nazwy mounta, n
 - `auto_update.example.conf` - przykład konfiguracji auto-update
 - `make_installer_bundle.sh` - tworzy paczkę `.tar.gz`, manifest `latest.json` i opcjonalnie publikuje je do katalogu WWW
 - `config.example.json` - przykładowa konfiguracja
+- `config.tuner-only.example.json` - przykładowa konfiguracja tylko dla tunera
 - `systemd/icecast-metadata-updater.service` - wzór usługi użytkownika systemd
 
 ## Instalacja (uniwersalna)
@@ -97,6 +110,19 @@ Instalator online:
 - weryfikuje sumę SHA256,
 - uruchamia `install.sh`,
 - opcjonalnie uruchamia kreator i auto-update.
+
+Wariant Tuner-only (bez `outside_*`):
+
+```bash
+curl -fsSL https://kazpar.pl/icecast-updater/install_tuner_only.sh | bash
+```
+
+Skrypt ustawia profil:
+
+- `outside.enabled=false`
+- `tuner.enabled=true`
+- zachowuje backup poprzedniego `config.json`
+- pyta, czy uruchomic kreator `config_wizard.py` po instalacji
 
 ## Diagnostyka
 
@@ -317,6 +343,13 @@ python3 weather_metadata_updater.py \
   Dla starszych konfiguracji ze starym domyślnym układem `classic` program pyta
   o potwierdzenie migracji tylko w trybie interaktywnym. W usłudze (bez TTY)
   pozostawia dotychczasowy układ, bez wymuszenia.
+
+Opcje konfiguracyjne dla tunera (w `config.json`):
+
+- `outside.enabled` - `true/false`, wlacza/wylacza sekcje `outside_*`
+- `tuner.enabled` - `true/false`, wlacza/wylacza aktualizacje mounta tunera
+- `tuner.title_template` - szablon dla tunera
+  Dostepne pola tunera: `{freq}`, `{ps}`, `{station}`, `{tx}`, `{tx_city}`, `{power}`, `{distance}`, `{signal}`, `{pi}`, `{azimuth}`, `{rt}`, `{mount}`.
 
 ## Uwaga dot. uprawnień
 
