@@ -458,6 +458,16 @@ if [[ -n "$SITE_URL" ]]; then
   SITE_URL="$(trim_trailing_slash "$SITE_URL")"
 fi
 
+# Normalizuj katalogi do sciezek absolutnych, aby tar/sha dzialaly poprawnie
+# niezaleznie od chwilowej zmiany katalogu roboczego (np. w subshellu).
+mkdir -p "$OUT_DIR"
+OUT_DIR="$(cd "$OUT_DIR" && pwd)"
+
+if [[ -n "$PUBLISH_DIR" ]]; then
+  mkdir -p "$PUBLISH_DIR"
+  PUBLISH_DIR="$(cd "$PUBLISH_DIR" && pwd)"
+fi
+
 if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   VERSION="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD)"
 else
