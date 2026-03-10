@@ -147,6 +147,11 @@ TITLE_TEMPLATE_PRESETS = {
 }
 
 LEGACY_CLASSIC_TEMPLATE = "{city}: {temp}°C, odczuwalna {feels}°C, wiatr {wind} km/h, {condition}{precip_clause}"
+GENERIC_TUNER_TITLE_TEMPLATE = "Tuner: {freq} MHz | RDS: {ps}"
+FMDX_TUNER_TITLE_TEMPLATE = (
+    "South-east Cracow: {freq} MHz | RDS: {ps} | ST: {station} | "
+    "ERP: {power} | Dist: {distance} | Signal: {signal}"
+)
 
 
 DEFAULT_CONFIG = {
@@ -180,7 +185,7 @@ DEFAULT_CONFIG = {
         "mount_name": "tuner",
         "interval_seconds": 30,
         "api_url": "http://127.0.0.1:8080/api",
-        "title_template": "Tuner: {freq} MHz | RDS: {ps}",
+        "title_template": GENERIC_TUNER_TITLE_TEMPLATE,
     },
     "title_mode": "outside",
 }
@@ -578,7 +583,7 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
         first_nonempty(
             deep_get(file_cfg, "tuner", "title_template"),
             deep_get(DEFAULT_CONFIG, "tuner", "title_template"),
-            "Tuner: {freq} MHz | RDS: {ps}",
+            GENERIC_TUNER_TITLE_TEMPLATE,
         )
     ).strip()
 
@@ -596,7 +601,14 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
 
     if tuner_enabled and not tuner_title_template:
         log("UWAGA: tuner.enabled=true, ale brak tuner.title_template - uzywam domyslnego")
-        tuner_title_template = "Tuner: {freq} MHz | RDS: {ps}"
+        tuner_title_template = GENERIC_TUNER_TITLE_TEMPLATE
+
+    if tuner_enabled and not outside_enabled and tuner_title_template == GENERIC_TUNER_TITLE_TEMPLATE:
+        log(
+            "Wykryto uproszczony domyslny tuner.title_template w trybie tuner-only; "
+            "przywracam pelny format FMDX."
+        )
+        tuner_title_template = FMDX_TUNER_TITLE_TEMPLATE
 
     tuner_interval_seconds = max(2, tuner_interval_seconds)
     if not outside_enabled and not tuner_enabled:

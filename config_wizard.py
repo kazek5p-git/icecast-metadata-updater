@@ -32,6 +32,12 @@ TITLE_TEMPLATE_PRESETS = {
     ),
 }
 
+GENERIC_TUNER_TITLE_TEMPLATE = "Tuner: {freq} MHz | RDS: {ps}"
+FMDX_TUNER_TITLE_TEMPLATE = (
+    "South-east Cracow: {freq} MHz | RDS: {ps} | ST: {station} | "
+    "ERP: {power} | Dist: {distance} | Signal: {signal}"
+)
+
 
 DEFAULT_CONFIG = {
     "icecast": {
@@ -64,7 +70,7 @@ DEFAULT_CONFIG = {
         "mount_name": "tuner",
         "interval_seconds": 5,
         "api_url": "http://127.0.0.1:8080/api",
-        "title_template": "Tuner: {freq} MHz | RDS: {ps}",
+        "title_template": GENERIC_TUNER_TITLE_TEMPLATE,
     },
     "title_mode": "outside",
 }
@@ -694,13 +700,26 @@ def main() -> int:
             default_port="8080",
             default_path="/api",
         )
-        existing_tuner_template = str(
-            deep_get(config, "tuner", "title_template", default=DEFAULT_CONFIG["tuner"]["title_template"])
-        ).strip()
+        tuner_default_template = (
+            FMDX_TUNER_TITLE_TEMPLATE
+            if profile == "tuner-only"
+            else DEFAULT_CONFIG["tuner"]["title_template"]
+        )
+        existing_tuner_template_raw = deep_get(config, "tuner", "title_template")
+        existing_tuner_template = (
+            str(existing_tuner_template_raw).strip()
+            if isinstance(existing_tuner_template_raw, str) and str(existing_tuner_template_raw).strip()
+            else ""
+        )
+        if profile == "tuner-only" and existing_tuner_template == GENERIC_TUNER_TITLE_TEMPLATE:
+            existing_tuner_template = ""
+        effective_tuner_template = existing_tuner_template or tuner_default_template
         if prompt_yes_no("Czy zmienic title_template tunera?", False):
-            tuner_cfg["title_template"] = prompt_text("Title template tunera", existing_tuner_template)
+            tuner_cfg["title_template"] = prompt_text("Title template tunera", effective_tuner_template)
+        elif profile == "tuner-only":
+            tuner_cfg["title_template"] = effective_tuner_template
         elif not existing_tuner_template:
-            tuner_cfg["title_template"] = DEFAULT_CONFIG["tuner"]["title_template"]
+            tuner_cfg["title_template"] = tuner_default_template
 
     icecast_cfg["base_url"] = base_url
     icecast_cfg["source_user"] = source_user
