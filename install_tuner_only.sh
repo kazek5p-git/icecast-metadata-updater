@@ -12,6 +12,7 @@ ASSUME_YES=0
 NO_RESTART=0
 RUN_WIZARD=1
 WIZARD_NO_TEST=0
+TTY_DEVICE=""
 
 print_help() {
   cat <<EOF
@@ -40,6 +41,18 @@ require_cmd() {
   fi
 }
 
+detect_tty_device() {
+  if [[ -t 0 ]]; then
+    TTY_DEVICE="/dev/stdin"
+    return
+  fi
+  if [[ -r /dev/tty ]]; then
+    TTY_DEVICE="/dev/tty"
+    return
+  fi
+  TTY_DEVICE=""
+}
+
 trim_trailing_slash() {
   local value="$1"
   while [[ "$value" == */ ]]; do
@@ -60,9 +73,15 @@ ask_yes_no() {
     return 0
   fi
 
+  if [[ -z "$TTY_DEVICE" ]]; then
+    echo "Brak interaktywnego terminala dla pytania: $question" >&2
+    echo "Uruchom instalator z terminala albo dodaj --yes." >&2
+    exit 2
+  fi
+
   while true; do
     local ans
-    read -r -p "$question [$marker]: " ans
+    read -r -p "$question [$marker]: " ans < "$TTY_DEVICE"
     ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]' | xargs)"
     if [[ -z "$ans" ]]; then
       if [[ "$default_yes" -eq 1 ]]; then
@@ -127,6 +146,7 @@ done
 
 require_cmd curl
 require_cmd python3
+detect_tty_device
 
 SITE_URL="$(trim_trailing_slash "$SITE_URL")"
 if [[ "$MANIFEST_URL" == "$DEFAULT_SITE_URL/latest.json" && "$SITE_URL" != "$DEFAULT_SITE_URL" ]]; then
@@ -211,11 +231,15 @@ fi
 
 if [[ "$RUN_WIZARD" -eq 1 && -x "$INSTALL_DIR/config_wizard.py" ]]; then
   if ask_yes_no "Uruchomic kreator konfiguracji teraz?" 1; then
-    WIZARD_ARGS=(--config "$CONFIG_PATH")
+    WIZARD_ARGS=(--config "$CONFIG_PATH" --profile tuner-only)
     if [[ "$WIZARD_NO_TEST" -eq 1 ]]; then
       WIZARD_ARGS+=(--no-test)
     fi
-    python3 "$INSTALL_DIR/config_wizard.py" "${WIZARD_ARGS[@]}"
+    if [[ -n "$TTY_DEVICE" ]]; then
+      python3 "$INSTALL_DIR/config_wizard.py" "${WIZARD_ARGS[@]}" < "$TTY_DEVICE"
+    else
+      echo "Pomijam kreator konfiguracji: brak interaktywnego terminala." >&2
+    fi
   fi
 fi
 

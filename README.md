@@ -81,10 +81,12 @@ Jeśli świadomie chcesz skopiować lokalny `config.json` obok instalatora:
 
 Kreator prowadzi krok po kroku przez:
 
-- adres Icecast (lokalny lub zdalny),
-- loginy i hasła,
+- host i port Icecast,
+- loginy i hasla,
+- osobne pola dla `source`, `metadata` i opcjonalnie `status-json.xsl`,
 - interwał odświeżania,
 - wybór trybu tytułu (`classic` / `outside` / `weather`),
+- ustawienia tunera FM-DX (`mount_name`, host API, port API, sciezka `/api`),
 - opcjonalne mapowania `city_overrides`,
 - test połączenia do `status-json.xsl`.
 
@@ -123,6 +125,7 @@ Skrypt ustawia profil:
 - `tuner.enabled=true`
 - zachowuje backup poprzedniego `config.json`
 - pyta, czy uruchomic kreator `config_wizard.py` po instalacji
+- kreator uruchamia sie w trybie `tuner-only`, z osobnymi polami host/port dla Icecast i API FM-DX
 
 ## Diagnostyka
 

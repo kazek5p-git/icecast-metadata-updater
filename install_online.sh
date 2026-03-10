@@ -9,6 +9,7 @@ INSTALL_DIR="$DEFAULT_INSTALL_DIR"
 RUN_WIZARD=1
 WIZARD_NO_TEST=0
 ASSUME_YES=0
+TTY_DEVICE=""
 
 print_help() {
   cat <<EOF
@@ -35,6 +36,18 @@ require_cmd() {
   fi
 }
 
+detect_tty_device() {
+  if [[ -t 0 ]]; then
+    TTY_DEVICE="/dev/stdin"
+    return
+  fi
+  if [[ -r /dev/tty ]]; then
+    TTY_DEVICE="/dev/tty"
+    return
+  fi
+  TTY_DEVICE=""
+}
+
 ask_yes_no() {
   local question="$1"
   local default_yes="${2:-1}"
@@ -47,9 +60,15 @@ ask_yes_no() {
     return 0
   fi
 
+  if [[ -z "$TTY_DEVICE" ]]; then
+    echo "Brak interaktywnego terminala dla pytania: $question" >&2
+    echo "Uruchom instalator z terminala albo dodaj --yes." >&2
+    exit 2
+  fi
+
   while true; do
     local ans
-    read -r -p "$question [$marker]: " ans
+    read -r -p "$question [$marker]: " ans < "$TTY_DEVICE"
     ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]' | xargs)"
     if [[ -z "$ans" ]]; then
       if [[ "$default_yes" -eq 1 ]]; then
@@ -108,6 +127,7 @@ require_cmd tar
 require_cmd sha256sum
 require_cmd python3
 require_cmd systemctl
+detect_tty_device
 
 TMP_DIR="$(mktemp -d)"
 cleanup() {
@@ -213,7 +233,11 @@ if [[ "$RUN_WIZARD" -eq 1 && -x "$INSTALL_DIR/config_wizard.py" ]]; then
     if [[ "$WIZARD_NO_TEST" -eq 1 ]]; then
       WIZARD_ARGS+=(--no-test)
     fi
-    python3 "$INSTALL_DIR/config_wizard.py" "${WIZARD_ARGS[@]}"
+    if [[ -n "$TTY_DEVICE" ]]; then
+      python3 "$INSTALL_DIR/config_wizard.py" "${WIZARD_ARGS[@]}" < "$TTY_DEVICE"
+    else
+      echo "Pomijam kreator konfiguracji: brak interaktywnego terminala." >&2
+    fi
   fi
 fi
 
