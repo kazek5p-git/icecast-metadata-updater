@@ -14,6 +14,7 @@ build/
 # Local runtime state
 .installed_version
 auto_update.conf
+RELEASE_INFO.json
 
 # OS files
 .DS_Store

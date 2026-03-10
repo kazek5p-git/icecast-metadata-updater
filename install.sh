@@ -32,7 +32,37 @@ require_cmd() {
   fi
 }
 
+read_release_info_field() {
+  local path="$1"
+  local field="$2"
+  [[ -f "$path" ]] || return 0
+  python3 - "$path" "$field" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+field = sys.argv[2]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+except Exception:
+    raise SystemExit(0)
+
+value = str(data.get(field, "")).strip()
+if value:
+    print(value)
+PY
+}
+
 detect_source_version() {
+  local release_info_path="$SCRIPT_DIR/RELEASE_INFO.json"
+  local release_version=""
+  release_version="$(read_release_info_field "$release_info_path" version)"
+  if [[ -n "$release_version" ]]; then
+    echo "$release_version"
+    return 0
+  fi
+
   if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
     head -n 1 "$SCRIPT_DIR/VERSION" | tr -d '[:space:]'
     return 0
@@ -145,6 +175,11 @@ fi
 if [[ -f "$SCRIPT_DIR/make_installer_bundle.sh" ]]; then
   copy_file "$SCRIPT_DIR/make_installer_bundle.sh" "$INSTALL_DIR/make_installer_bundle.sh"
   chmod +x "$INSTALL_DIR/make_installer_bundle.sh"
+fi
+if [[ -f "$SCRIPT_DIR/RELEASE_INFO.json" ]]; then
+  copy_file "$SCRIPT_DIR/RELEASE_INFO.json" "$INSTALL_DIR/RELEASE_INFO.json"
+else
+  rm -f "$INSTALL_DIR/RELEASE_INFO.json"
 fi
 
 chmod +x "$INSTALL_DIR/start_updater.sh" "$INSTALL_DIR/config_wizard.py" \

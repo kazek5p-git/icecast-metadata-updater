@@ -8,6 +8,7 @@ import base64
 import configparser
 import html
 import json
+import os
 import re
 import sys
 import time
@@ -16,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode, unquote, urlparse
+from urllib.parse import urlencode, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 
 
@@ -217,6 +218,7 @@ class RuntimeConfig:
     tuner_mount_name: str
     tuner_interval_seconds: int
     tuner_api_url: str
+    tuner_api_candidates: tuple[str, ...]
     tuner_title_template: str
     title_mode: str
     title_template: str
@@ -304,6 +306,133 @@ def darkice_defaults() -> dict[str, str]:
             log(f"Wykryto ustawienia Icecast z {path}")
             return values
     return {}
+
+
+def normalize_tuner_api_url(raw_url: str) -> str:
+    value = str(raw_url).strip()
+    if not value:
+        return ""
+    if "://" not in value:
+        value = f"http://{value}"
+
+    parsed = urlparse(value)
+    scheme = parsed.scheme or "http"
+    netloc = parsed.netloc or parsed.path
+    path = parsed.path if parsed.netloc else ""
+    if not netloc:
+        return ""
+    if not path or path == "/":
+        path = "/api"
+
+    return urlunparse((scheme, netloc, path, "", "", ""))
+
+
+def append_unique_url(target: list[str], raw_url: str) -> None:
+    normalized = normalize_tuner_api_url(raw_url)
+    if normalized and normalized not in target:
+        target.append(normalized)
+
+
+def build_local_tuner_api_urls(host: str, port: str, path: str) -> list[str]:
+    urls: list[str] = []
+    host_value = host.strip().strip("[]")
+    port_value = port.strip()
+    api_path = path if path and path != "/" else "/api"
+    if not port_value:
+        return urls
+
+    if host_value.lower() in {"", "*", "0.0.0.0", "::"}:
+        for candidate_host in ("127.0.0.1", "localhost"):
+            append_unique_url(urls, f"http://{candidate_host}:{port_value}{api_path}")
+        return urls
+
+    append_unique_url(urls, f"http://{host_value}:{port_value}{api_path}")
+    if host_value.lower() in {"127.0.0.1", "localhost", "::1"}:
+        for candidate_host in ("127.0.0.1", "localhost"):
+            append_unique_url(urls, f"http://{candidate_host}:{port_value}{api_path}")
+    return urls
+
+
+def iter_local_fmdx_config_paths() -> list[Path]:
+    paths: list[Path] = []
+    seen: set[Path] = set()
+
+    for env_name in ("FMDX_WEBSERVER_CONFIG", "FMDX_CONFIG_PATH"):
+        raw = os.environ.get(env_name, "").strip()
+        if not raw:
+            continue
+        candidate = Path(raw).expanduser()
+        if candidate not in seen:
+            seen.add(candidate)
+            paths.append(candidate)
+
+    home = Path.home()
+    for candidate in (
+        home / "build" / "fm-dx-webserver" / "config.json",
+        home / "fm-dx-webserver" / "config.json",
+        Path("/opt/fm-dx-webserver/config.json"),
+        Path("/srv/fm-dx-webserver/config.json"),
+    ):
+        if candidate not in seen:
+            seen.add(candidate)
+            paths.append(candidate)
+
+    return paths
+
+
+def discover_local_fmdx_api_candidates(api_path: str) -> list[tuple[str, Path]]:
+    discovered: list[tuple[str, Path]] = []
+    seen_urls: set[str] = set()
+
+    for path in iter_local_fmdx_config_paths():
+        if not path.exists():
+            continue
+        try:
+            data = load_json_config(path)
+        except Exception:
+            continue
+        webserver_cfg = data.get("webserver")
+        if not isinstance(webserver_cfg, dict):
+            continue
+
+        host = str(webserver_cfg.get("webserverIp", "")).strip()
+        port = str(webserver_cfg.get("webserverPort", "")).strip()
+        for url in build_local_tuner_api_urls(host, port, api_path):
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            discovered.append((url, path))
+
+    return discovered
+
+
+def build_tuner_api_candidates(configured_url: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    candidates: list[str] = []
+    notes: list[str] = []
+
+    normalized_url = normalize_tuner_api_url(configured_url)
+    append_unique_url(candidates, normalized_url)
+    parsed = urlparse(normalized_url)
+    host = (parsed.hostname or "").strip().lower()
+    try:
+        port = str(parsed.port or "").strip()
+    except ValueError:
+        port = ""
+    api_path = parsed.path or "/api"
+
+    if host in {"127.0.0.1", "localhost", "::1", "0.0.0.0", ""} and port:
+        for fallback_url in build_local_tuner_api_urls(host, port, api_path):
+            append_unique_url(candidates, fallback_url)
+
+        for discovered_url, source_path in discover_local_fmdx_api_candidates(api_path):
+            before = len(candidates)
+            append_unique_url(candidates, discovered_url)
+            if len(candidates) > before and discovered_url != normalized_url:
+                notes.append(
+                    f"Wykryto lokalny config FM-DX {source_path}: fallback API {discovered_url}"
+                )
+
+    return tuple(candidates), tuple(notes)
 
 
 def confirm_legacy_title_migration() -> bool:
@@ -461,6 +590,10 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
         log("UWAGA: tuner.enabled=true, ale brak tuner.api_url - wylaczam sekcje tuner")
         tuner_enabled = False
 
+    tuner_api_candidates, tuner_api_notes = build_tuner_api_candidates(tuner_api_url)
+    for note in tuner_api_notes:
+        log(note)
+
     if tuner_enabled and not tuner_title_template:
         log("UWAGA: tuner.enabled=true, ale brak tuner.title_template - uzywam domyslnego")
         tuner_title_template = "Tuner: {freq} MHz | RDS: {ps}"
@@ -542,6 +675,7 @@ def build_runtime_config(args: argparse.Namespace, file_cfg: dict[str, Any]) -> 
         tuner_mount_name=tuner_mount_name,
         tuner_interval_seconds=tuner_interval_seconds,
         tuner_api_url=tuner_api_url,
+        tuner_api_candidates=tuner_api_candidates,
         tuner_title_template=tuner_title_template,
         title_mode=effective_title_mode,
         title_template=str(title_template),
@@ -1195,7 +1329,35 @@ class SafeTemplateDict(dict):
 
 
 def fetch_tuner_snapshot(cfg: RuntimeConfig) -> dict[str, str]:
-    payload = http_get_json(cfg.tuner_api_url, timeout=10, retries=1)
+    candidate_urls = list(cfg.tuner_api_candidates) or [cfg.tuner_api_url]
+    resolved_url = getattr(cfg, "_resolved_tuner_api_url", "")
+    if resolved_url in candidate_urls:
+        candidate_urls = [resolved_url] + [url for url in candidate_urls if url != resolved_url]
+
+    payload: Any = None
+    used_url = ""
+    errors: list[str] = []
+    for candidate_url in candidate_urls:
+        try:
+            payload = http_get_json(candidate_url, timeout=10, retries=1)
+            used_url = candidate_url
+            break
+        except Exception as exc:
+            errors.append(f"{candidate_url}: {exc}")
+
+    if used_url:
+        previous_url = getattr(cfg, "_resolved_tuner_api_url", "")
+        setattr(cfg, "_resolved_tuner_api_url", used_url)
+        if used_url != cfg.tuner_api_url and previous_url != used_url:
+            log(
+                f"UWAGA tuner.api_url={cfg.tuner_api_url} nie odpowiada; "
+                f"uzywam fallback {used_url}"
+            )
+    else:
+        if len(errors) == 1:
+            raise ValueError(errors[0])
+        raise ValueError("nieudane proby API tunera: " + " | ".join(errors))
+
     if not isinstance(payload, dict):
         raise ValueError("API tunera zwrocilo nieprawidlowy format (oczekiwano JSON object)")
 
@@ -1403,7 +1565,7 @@ def main() -> int:
         return 2
 
     log(
-        "Start: base_url=%s mount_prefix=%s interval=%ss dry_run=%s title_mode=%s outside_enabled=%s tuner_enabled=%s tuner_mount=%s tuner_interval=%ss"
+        "Start: base_url=%s mount_prefix=%s interval=%ss dry_run=%s title_mode=%s outside_enabled=%s tuner_enabled=%s tuner_mount=%s tuner_interval=%ss tuner_api=%s"
         % (
             cfg.base_url,
             cfg.mount_prefix,
@@ -1414,6 +1576,7 @@ def main() -> int:
             cfg.tuner_enabled,
             cfg.tuner_mount_name,
             cfg.tuner_interval_seconds,
+            cfg.tuner_api_url,
         )
     )
 

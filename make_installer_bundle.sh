@@ -124,6 +124,19 @@ write_manifest() {
   } > "$path"
 }
 
+write_release_info() {
+  local path="$1"
+  local version="$2"
+  local generated_at="$3"
+
+  {
+    echo "{"
+    echo "  \"version\": \"$version\","
+    echo "  \"generated_at_utc\": \"$generated_at\""
+    echo "}"
+  } > "$path"
+}
+
 write_changelog() {
   local path="$1"
   local version="$2"
@@ -506,6 +519,9 @@ fi
 
 if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   VERSION="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD)"
+  if ! git -C "$SCRIPT_DIR" diff --quiet --ignore-submodules -- || ! git -C "$SCRIPT_DIR" diff --cached --quiet --ignore-submodules --; then
+    VERSION="${VERSION}-dirty-$(date -u +%Y%m%d%H%M%S)"
+  fi
 else
   VERSION="$(date +%Y%m%d-%H%M%S)"
 fi
@@ -516,6 +532,7 @@ PKG_DIR="$STAGE_DIR/$PKG_NAME"
 GENERATED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 CHANGELOG_NAME="CHANGELOG.md"
 CHANGELOG_PATH="$OUT_DIR/$CHANGELOG_NAME"
+RELEASE_INFO_NAME="RELEASE_INFO.json"
 INSTALL_SCRIPT_NAME="install_online.sh"
 DOCTOR_SCRIPT_NAME="doctor.sh"
 TUNER_INSTALL_SCRIPT_NAME="install_tuner_only.sh"
@@ -524,6 +541,7 @@ TUNER_CONFIG_NAME="config.tuner-only.example.json"
 mkdir -p "$PKG_DIR/systemd"
 mkdir -p "$OUT_DIR"
 write_changelog "$CHANGELOG_PATH" "$VERSION" "$GENERATED_AT_UTC"
+write_release_info "$PKG_DIR/$RELEASE_INFO_NAME" "$VERSION" "$GENERATED_AT_UTC"
 
 cp "$SCRIPT_DIR/weather_metadata_updater.py" "$PKG_DIR/"
 cp "$SCRIPT_DIR/config_wizard.py" "$PKG_DIR/"
