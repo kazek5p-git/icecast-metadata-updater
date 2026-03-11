@@ -352,7 +352,8 @@ Opcje konfiguracyjne dla tunera (w `config.json`):
 - `outside.enabled` - `true/false`, wlacza/wylacza sekcje `outside_*`
 - `tuner.enabled` - `true/false`, wlacza/wylacza aktualizacje mounta tunera
 - `tuner.title_template` - szablon dla tunera
-  Dostepne pola tunera: `{freq}`, `{ps}`, `{station}`, `{tx}`, `{tx_city}`, `{power}`, `{distance}`, `{signal}`, `{pi}`, `{azimuth}`, `{rt}`, `{mount}`.
+  Dostepne pola tunera: `{freq}`, `{ps}`, `{station}`, `{tx}`, `{tx_city}`, `{power}`, `{distance}`, `{signal}`, `{pi}`, `{azimuth}`, `{rt}`, `{rt_clause}`, `{mount}`.
+  `{rt_clause}` zwraca gotowy fragment `, RT: ...` tylko wtedy, gdy radiotext jest dostepny.
 
 ## Uwaga dot. uprawnień
 
