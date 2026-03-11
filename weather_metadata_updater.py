@@ -1416,6 +1416,35 @@ def fetch_tuner_snapshot(cfg: RuntimeConfig) -> dict[str, str]:
 
 
 def build_tuner_title(cfg: RuntimeConfig, snapshot: dict[str, str]) -> str:
+    if cfg.tuner_title_template.strip() == FMDX_TUNER_TITLE_TEMPLATE:
+        def has_value(value: str) -> bool:
+            normalized = str(value or "").strip().lower()
+            return normalized not in {"", "brak danych", "nieznana stacja"}
+
+        parts = [
+            f"South-east Cracow: {snapshot.get('freq', 'brak czestotliwosci')} MHz",
+            f"RDS: {snapshot.get('ps', 'brak RDS')}",
+        ]
+
+        tx_name = snapshot.get("tx", "")
+        tx_city = snapshot.get("tx_city", "")
+        if has_value(tx_name) or has_value(tx_city):
+            parts.append(f"ST: {snapshot.get('station', 'nieznana stacja')}")
+
+        power = snapshot.get("power", "")
+        if has_value(power):
+            parts.append(f"ERP: {power}")
+
+        distance = snapshot.get("distance", "")
+        if has_value(distance):
+            parts.append(f"Dist: {distance}")
+
+        signal = snapshot.get("signal", "")
+        if has_value(signal):
+            parts.append(f"Signal: {signal}")
+
+        return " | ".join(parts)
+
     values: dict[str, str] = dict(snapshot)
     values["mount"] = cfg.tuner_mount_name
     return cfg.tuner_title_template.format_map(SafeTemplateDict(values))
